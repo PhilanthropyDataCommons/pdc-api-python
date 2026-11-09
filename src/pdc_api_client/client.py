@@ -1,5 +1,6 @@
 import json
 from collections.abc import Generator
+from datetime import datetime
 from typing import ClassVar, Protocol
 
 import requests
@@ -22,6 +23,7 @@ from pdc_api_client.models import (
     PresignedPost,
     Proposal,
     ProposalVersion,
+    Source,
 )
 from pdc_api_client.transport import APISession
 
@@ -207,6 +209,40 @@ def get_changemaker_field_value_batch(session: APISession, *, batch_id: int) -> 
     except errors.PDCNotFoundError:
         raise errors.ChangemakerFieldValueBatchNotFoundError
     return ChangemakerFieldValueBatch.model_validate(response.json())
+
+
+def create_changemaker_source(session: APISession, *, changemaker_id: int, label: str) -> Source:
+    response = session.post("sources", json={"changemakerId": changemaker_id, "label": label})
+    return Source.model_validate(response.json())
+
+
+def create_changemaker_field_value_batch(
+    session: APISession, *, source_id: int, notes: str | None = None
+) -> ChangemakerFieldValueBatch:
+    response = session.post("changemakerFieldValueBatches", json={"sourceId": source_id, "notes": notes})
+    return ChangemakerFieldValueBatch.model_validate(response.json())
+
+
+def create_changemaker_field_value(
+    session: APISession,
+    *,
+    changemaker_id: int,
+    base_field_short_code: str,
+    batch_id: int,
+    value: str,
+    good_as_of: datetime | None = None,
+) -> ChangemakerFieldValue:
+    response = session.post(
+        "changemakerFieldValues",
+        json={
+            "changemakerId": changemaker_id,
+            "baseFieldShortCode": base_field_short_code,
+            "batchId": batch_id,
+            "value": value,
+            "goodAsOf": good_as_of.isoformat() if good_as_of else None,
+        },
+    )
+    return ChangemakerFieldValue.model_validate(response.json())
 
 
 def get_funder(session: APISession, *, short_code: str) -> Funder:

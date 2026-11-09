@@ -1,17 +1,22 @@
 import uuid
+from datetime import UTC, datetime
 from http import HTTPStatus
 
 import pytest
 import requests
 
 from pdc_api_client.client import (
+    create_changemaker_field_value,
+    create_changemaker_field_value_batch,
     create_changemaker_proposal,
     create_changemaker_proposal_version,
+    create_changemaker_source,
     get_application_form,
     get_application_form_by_name,
     get_basefields,
     get_bundle_page,
     get_changemaker,
+    get_changemaker_field_values,
     get_changemaker_proposals,
     get_changemakers,
     get_data_providers,
@@ -364,6 +369,33 @@ class TestChangemakers:
         assert isinstance(bundle, ChangemakerBundle)
         assert bundle.total >= 1
         assert all(isinstance(entry, Changemaker) for entry in bundle.entries)
+
+
+class TestChangemakerFieldValueWrites:
+    def test_changemaker_sourced_batch_round_trips(self, api_session):
+        changemaker = seed_changemaker(api_session)
+        base_field = seed_base_field(api_session, category="organization")
+        good_as_of = datetime(2026, 1, 31, 9, 0, tzinfo=UTC)
+
+        source = create_changemaker_source(api_session, changemaker_id=changemaker.id, label="Self-reported")
+        batch = create_changemaker_field_value_batch(api_session, source_id=source.id, notes="Edited")
+        create_changemaker_field_value(
+            api_session,
+            changemaker_id=changemaker.id,
+            base_field_short_code=base_field.short_code,
+            batch_id=batch.id,
+            value="Springfield",
+            good_as_of=good_as_of,
+        )
+
+        [stored] = get_changemaker_field_values(api_session, batch_id=batch.id)
+        assert batch.source_id == source.id
+        assert (stored.changemaker_id, stored.base_field_short_code, stored.value, stored.good_as_of) == (
+            changemaker.id,
+            base_field.short_code,
+            "Springfield",
+            good_as_of,
+        )
 
 
 class TestProposals:

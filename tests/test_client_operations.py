@@ -1,11 +1,15 @@
 import json
+from datetime import UTC, datetime
 
 import pytest
 import responses
 
 from pdc_api_client.client import (
+    create_changemaker_field_value,
+    create_changemaker_field_value_batch,
     create_changemaker_proposal,
     create_changemaker_proposal_version,
+    create_changemaker_source,
     get_application_form,
     get_application_form_by_name,
     get_bundle_page,
@@ -40,11 +44,14 @@ from pdc_api_client.models import (
 from pdc_api_client.testing import (
     application_form_payload,
     bundle,
+    changemaker_field_value_batch_payload,
+    changemaker_field_value_payload,
     changemaker_payload,
     changemaker_proposal_payload,
     funder_payload,
     proposal_payload,
     proposal_version_payload,
+    source_payload,
 )
 
 BASE_URL = "https://pdc.test"
@@ -226,6 +233,62 @@ class TestRegisterFileUpload:
 
         assert isinstance(result, File)
         assert result.id == 3
+
+
+class TestCreateChangemakerSource:
+    def test_posts_changemaker_and_label(self, session):
+        _post(
+            "sources",
+            source_payload(id=42),
+            match=[responses.matchers.json_params_matcher({"changemakerId": 10, "label": "Acme (self-reported)"})],
+        )
+
+        assert create_changemaker_source(session, changemaker_id=10, label="Acme (self-reported)").id == 42
+
+
+class TestCreateChangemakerFieldValueBatch:
+    def test_posts_source_and_notes(self, session):
+        _post(
+            "changemakerFieldValueBatches",
+            changemaker_field_value_batch_payload(id=20, source_id=42),
+            match=[responses.matchers.json_params_matcher({"sourceId": 42, "notes": "Edited"})],
+        )
+
+        assert create_changemaker_field_value_batch(session, source_id=42, notes="Edited").id == 20
+
+
+class TestCreateChangemakerFieldValue:
+    @pytest.mark.parametrize(
+        ("good_as_of", "sent"),
+        [(datetime(2026, 1, 31, 9, 0, tzinfo=UTC), "2026-01-31T09:00:00+00:00"), (None, None)],
+    )
+    def test_posts_value_with_iso_good_as_of(self, session, good_as_of, sent):
+        _post(
+            "changemakerFieldValues",
+            changemaker_field_value_payload(id=30),
+            match=[
+                responses.matchers.json_params_matcher(
+                    {
+                        "changemakerId": 10,
+                        "baseFieldShortCode": "organization_city",
+                        "batchId": 20,
+                        "value": "Springfield",
+                        "goodAsOf": sent,
+                    }
+                )
+            ],
+        )
+
+        result = create_changemaker_field_value(
+            session,
+            changemaker_id=10,
+            base_field_short_code="organization_city",
+            batch_id=20,
+            value="Springfield",
+            good_as_of=good_as_of,
+        )
+
+        assert result.id == 30
 
 
 class TestGetBundlePage:
