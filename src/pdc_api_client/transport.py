@@ -1,6 +1,8 @@
 from urllib.parse import urljoin
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 from pdc_api_client import errors
 from pdc_api_client.token import TokenProvider
@@ -32,6 +34,16 @@ class APISession:
         self._request_kwargs = request_kwargs or {}
         self._session = requests.Session()
         self._session.headers["Accept"] = "application/json"
+        # Render's edge sometimes answers a healthy upstream with a one-off 502; only idempotent reads retry.
+        retries = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=(502, 503, 504),
+            allowed_methods=("GET", "HEAD"),
+            raise_on_status=False,
+        )
+        for scheme in ("https://", "http://"):
+            self._session.mount(scheme, HTTPAdapter(max_retries=retries))
         # Idle pooled connections can be closed server-side and raise RemoteDisconnected on reuse.
         if not keep_alive:
             self._session.headers["Connection"] = "close"

@@ -61,6 +61,51 @@ def test_network_failure_raises_service_error(session, exception):
         session.get("/test-endpoint")
 
 
+@pytest.mark.parametrize("status", [502, 503, 504])
+def test_get_retries_transient_gateway_error(session, status):
+    responses.get(URL, status=status)
+    responses.get(URL, json={"ok": True})
+
+    assert session.get("/test-endpoint").json() == {"ok": True}
+    assert len(responses.calls) == 2
+
+
+def test_get_that_exhausts_retries_raises_service_error(session):
+    responses.get(URL, json={"error": "bad gateway"}, status=502)
+
+    with pytest.raises(PDCServiceError) as exc_info:
+        session.get("/test-endpoint")
+
+    assert (exc_info.value.code, exc_info.value.detail) == (502, {"error": "bad gateway"})
+    assert len(responses.calls) == 4
+
+
+def test_get_retries_with_keep_alive_disabled():
+    session = APISession(base_url=BASE_URL, token_provider=FakeTokenProvider(), keep_alive=False)
+    responses.get(URL, status=502)
+    responses.get(URL, json={"ok": True})
+
+    assert session.get("/test-endpoint").json() == {"ok": True}
+
+
+def test_post_does_not_retry(session):
+    responses.post(URL, status=502)
+
+    with pytest.raises(PDCServiceError):
+        session.post("/test-endpoint")
+
+    assert len(responses.calls) == 1
+
+
+def test_get_does_not_retry_server_error_outside_gateway_codes(session):
+    responses.get(URL, status=500)
+
+    with pytest.raises(PDCServiceError):
+        session.get("/test-endpoint")
+
+    assert len(responses.calls) == 1
+
+
 def test_request_sends_bearer_token(session):
     responses.get(URL, json={})
     session.get("/test-endpoint")
