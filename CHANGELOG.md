@@ -9,6 +9,7 @@ PDC does not bump its spec version for every API change, so each entry names the
 - `create_changemaker_source`, `create_changemaker_field_value_batch`, and `create_changemaker_field_value` write a changemaker's own field values.
 - Seeding drops `seed_changemaker_field_value_batch` and `seed_changemaker_field_value`; use the client functions above.
 - `APISession` retries a GET or HEAD up to three times, with backoff, on a 502, 503, or 504 or a dropped connection. Other methods never retry.
+- `SeededProposalBundle.changemaker` may be `None`, for a proposal seeded without a changemaker.
 
 ## 0.1.0 (2026-11-09)
 
