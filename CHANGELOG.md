@@ -4,7 +4,7 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
-## Unreleased
+## 0.1.1 (2026-11-09)
 
 - `create_changemaker_source`, `create_changemaker_field_value_batch`, and `create_changemaker_field_value` write a changemaker's own field values.
 - Seeding drops `seed_changemaker_field_value_batch` and `seed_changemaker_field_value`; use the client functions above.
