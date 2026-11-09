@@ -42,7 +42,7 @@ class SeededApplicationForm:
 
 @dataclass
 class SeededProposalBundle:
-    changemaker: ShallowChangemaker
+    changemaker: ShallowChangemaker | None
     funder: Funder
     opportunity: Opportunity
     source: Source
