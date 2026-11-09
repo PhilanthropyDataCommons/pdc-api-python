@@ -67,6 +67,10 @@ def _post(path, payload, *, match=None):
     )
 
 
+def _sent_json():
+    return json.loads(responses.calls[-1].request.body)
+
+
 class TestGetProposal:
     def test_returns_validated_proposal(self, session, add_proposal_response):
         add_proposal_response(id=100)
@@ -236,25 +240,21 @@ class TestRegisterFileUpload:
 
 
 class TestCreateChangemakerSource:
-    def test_posts_changemaker_and_label(self, session):
-        _post(
-            "sources",
-            source_payload(id=42),
-            match=[responses.matchers.json_params_matcher({"changemakerId": 10, "label": "Acme (self-reported)"})],
-        )
+    def test_sends_changemaker_and_label(self, session):
+        _post("sources", source_payload())
 
-        assert create_changemaker_source(session, changemaker_id=10, label="Acme (self-reported)").id == 42
+        create_changemaker_source(session, changemaker_id=10, label="Acme (self-reported)")
+
+        assert _sent_json() == {"changemakerId": 10, "label": "Acme (self-reported)"}
 
 
 class TestCreateChangemakerFieldValueBatch:
-    def test_posts_source_and_notes(self, session):
-        _post(
-            "changemakerFieldValueBatches",
-            changemaker_field_value_batch_payload(id=20, source_id=42),
-            match=[responses.matchers.json_params_matcher({"sourceId": 42, "notes": "Edited"})],
-        )
+    def test_sends_source_and_notes(self, session):
+        _post("changemakerFieldValueBatches", changemaker_field_value_batch_payload())
 
-        assert create_changemaker_field_value_batch(session, source_id=42, notes="Edited").id == 20
+        create_changemaker_field_value_batch(session, source_id=42, notes="Edited")
+
+        assert _sent_json() == {"sourceId": 42, "notes": "Edited"}
 
 
 class TestCreateChangemakerFieldValue:
@@ -262,24 +262,10 @@ class TestCreateChangemakerFieldValue:
         ("good_as_of", "sent"),
         [(datetime(2026, 1, 31, 9, 0, tzinfo=UTC), "2026-01-31T09:00:00+00:00"), (None, None)],
     )
-    def test_posts_value_with_iso_good_as_of(self, session, good_as_of, sent):
-        _post(
-            "changemakerFieldValues",
-            changemaker_field_value_payload(id=30),
-            match=[
-                responses.matchers.json_params_matcher(
-                    {
-                        "changemakerId": 10,
-                        "baseFieldShortCode": "organization_city",
-                        "batchId": 20,
-                        "value": "Springfield",
-                        "goodAsOf": sent,
-                    }
-                )
-            ],
-        )
+    def test_sends_good_as_of_as_iso_string(self, session, good_as_of, sent):
+        _post("changemakerFieldValues", changemaker_field_value_payload())
 
-        result = create_changemaker_field_value(
+        create_changemaker_field_value(
             session,
             changemaker_id=10,
             base_field_short_code="organization_city",
@@ -288,7 +274,26 @@ class TestCreateChangemakerFieldValue:
             good_as_of=good_as_of,
         )
 
-        assert result.id == 30
+        assert _sent_json() == {
+            "changemakerId": 10,
+            "baseFieldShortCode": "organization_city",
+            "batchId": 20,
+            "value": "Springfield",
+            "goodAsOf": sent,
+        }
+
+    def test_rejects_good_as_of_without_timezone(self, session):
+        with pytest.raises(ValueError, match="good_as_of must include a timezone"):
+            create_changemaker_field_value(
+                session,
+                changemaker_id=10,
+                base_field_short_code="organization_city",
+                batch_id=20,
+                value="Springfield",
+                good_as_of=datetime(2026, 1, 31, 9, 0),
+            )
+
+        assert not responses.calls
 
 
 class TestGetBundlePage:

@@ -232,6 +232,8 @@ def create_changemaker_field_value(
     value: str,
     good_as_of: datetime | None = None,
 ) -> ChangemakerFieldValue:
+    if good_as_of is not None and good_as_of.tzinfo is None:
+        raise ValueError("good_as_of must include a timezone")
     response = session.post(
         "changemakerFieldValues",
         json={

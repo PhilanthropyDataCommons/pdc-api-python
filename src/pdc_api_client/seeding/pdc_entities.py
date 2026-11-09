@@ -6,6 +6,7 @@ from faker import Faker
 from pdc_api_client.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
+    create_changemaker_source,
     get_bundle_page,
     get_changemaker_field_values,
     get_organization_by_keycloak_id,
@@ -394,13 +395,13 @@ def seed_source(
     changemaker_id: int | None = None,
 ) -> Source:
     label = label or f"{fake.catch_phrase()} Source"
+    if changemaker_id is not None:
+        return create_changemaker_source(session, changemaker_id=changemaker_id, label=label)
     payload: dict = {"label": label}
     if data_provider_short_code:
         payload["dataProviderShortCode"] = data_provider_short_code
     elif funder_short_code:
         payload["funderShortCode"] = funder_short_code
-    elif changemaker_id is not None:
-        payload["changemakerId"] = changemaker_id
     else:
         funder = seed_funder(session)
         payload["funderShortCode"] = funder.short_code
