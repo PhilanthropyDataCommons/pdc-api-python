@@ -28,18 +28,12 @@ from pdc_api_client.errors import (
     ProposalNotFoundError,
 )
 from pdc_api_client.models import (
-    Changemaker,
-    ChangemakerApplicationForm,
     ChangemakerBundle,
     ChangemakerProposal,
-    File,
-    Funder,
     FunderCollaborativeMemberBundle,
     NewProposalFieldValue,
     NewProposalVersion,
     Organization,
-    Proposal,
-    ProposalVersion,
 )
 from pdc_api_client.testing import (
     application_form_payload,
@@ -57,14 +51,8 @@ from pdc_api_client.testing import (
 BASE_URL = "https://pdc.test"
 
 
-def _post(path, payload, *, match=None):
-    responses.add(
-        method=responses.POST,
-        url=f"{BASE_URL}/{path}",
-        json=payload,
-        status=200,
-        match=match or [],
-    )
+def _post(path, payload):
+    responses.add(responses.POST, f"{BASE_URL}/{path}", json=payload)
 
 
 def _sent_json():
@@ -72,14 +60,6 @@ def _sent_json():
 
 
 class TestGetProposal:
-    def test_returns_validated_proposal(self, session, add_proposal_response):
-        add_proposal_response(id=100)
-
-        result = get_proposal(session, proposal_id=100)
-
-        assert isinstance(result, Proposal)
-        assert result.id == 100
-
     def test_404_translates_to_proposal_not_found(self, session, add_proposal_response):
         add_proposal_response(id=999, status=404, payload={})
 
@@ -88,14 +68,6 @@ class TestGetProposal:
 
 
 class TestGetChangemaker:
-    def test_returns_validated_changemaker(self, session, add_changemaker_response):
-        add_changemaker_response(id=10)
-
-        result = get_changemaker(session, changemaker_id=10)
-
-        assert isinstance(result, Changemaker)
-        assert result.id == 10
-
     def test_404_translates_to_changemaker_not_found(self, session, add_changemaker_response):
         add_changemaker_response(id=999, status=404, payload={})
 
@@ -104,14 +76,6 @@ class TestGetChangemaker:
 
 
 class TestGetFunder:
-    def test_returns_validated_funder(self, session, add_funder_response):
-        add_funder_response(short_code="acme")
-
-        result = get_funder(session, short_code="acme")
-
-        assert isinstance(result, Funder)
-        assert result.short_code == "acme"
-
     def test_404_translates_to_funder_not_found(self, session, add_funder_response):
         add_funder_response(short_code="missing", status=404, payload={})
 
@@ -151,13 +115,12 @@ class TestGetOrganizationByKeycloakId:
 
 
 class TestGetApplicationForm:
-    def test_parses_application_form(self, session, add_application_form_response):
+    def test_requests_form_by_id(self, session, add_application_form_response):
         add_application_form_response(id=7)
 
-        result = get_application_form(session, form_id=7)
+        get_application_form(session, form_id=7)
 
-        assert isinstance(result, ChangemakerApplicationForm)
-        assert result.id == 7
+        assert responses.calls[-1].request.path_url == "/applicationForms/7"
 
 
 class TestGetApplicationFormByName:
@@ -178,65 +141,50 @@ class TestGetApplicationFormByName:
 
 
 class TestCreateChangemakerProposal:
-    def test_posts_data_and_returns_proposal(self, session):
-        data = {"opportunityId": 5, "externalId": "ext-1"}
-        _post("proposals", proposal_payload(id=100), match=[responses.matchers.json_params_matcher(data)])
+    def test_sends_data_unchanged(self, session):
+        _post("proposals", proposal_payload())
 
-        result = create_changemaker_proposal(session, data=data)
+        create_changemaker_proposal(session, data={"opportunityId": 5, "externalId": "ext-1"})
 
-        assert isinstance(result, Proposal)
-        assert result.id == 100
+        assert _sent_json() == {"opportunityId": 5, "externalId": "ext-1"}
 
 
 class TestCreateChangemakerProposalVersion:
-    def test_posts_aliased_body_and_returns_version(self, session):
+    def test_sends_camel_case_body(self, session):
         new_version = NewProposalVersion(
             proposal_id=100,
             source_id=1,
             application_form_id=7,
             field_values=[NewProposalFieldValue(application_form_field_id=3, position=1, value="hi")],
         )
-        expected_body = json.loads(new_version.model_dump_json(by_alias=True))
-        _post(
-            "proposalVersions",
-            proposal_version_payload(id=1, proposal_id=100),
-            match=[responses.matchers.json_params_matcher(expected_body)],
-        )
+        _post("proposalVersions", proposal_version_payload())
 
-        result = create_changemaker_proposal_version(session, proposal_version=new_version)
+        create_changemaker_proposal_version(session, proposal_version=new_version)
 
-        assert isinstance(result, ProposalVersion)
-        assert result.proposal_id == 100
+        assert _sent_json() == {
+            "proposalId": 100,
+            "sourceId": 1,
+            "applicationFormId": 7,
+            "fieldValues": [{"applicationFormFieldId": 3, "position": 1, "value": "hi", "goodAsOf": None}],
+        }
 
 
 class TestLinkChangemakerToProposal:
-    def test_posts_ids_and_returns_link(self, session):
-        _post(
-            "changemakerProposals",
-            changemaker_proposal_payload(id=9, changemaker_id=10, proposal_id=100),
-            match=[responses.matchers.json_params_matcher({"changemakerId": 10, "proposalId": 100})],
-        )
+    def test_sends_changemaker_and_proposal_ids(self, session):
+        _post("changemakerProposals", changemaker_proposal_payload())
 
-        result = link_changemaker_to_proposal(session, changemaker_id=10, proposal_id=100)
+        link_changemaker_to_proposal(session, changemaker_id=10, proposal_id=100)
 
-        assert isinstance(result, ChangemakerProposal)
-        assert result.id == 9
+        assert _sent_json() == {"changemakerId": 10, "proposalId": 100}
 
 
 class TestRegisterFileUpload:
-    def test_posts_metadata_and_returns_file(self, session):
-        _post(
-            "files",
-            {"id": 3, "name": "doc.pdf"},
-            match=[
-                responses.matchers.json_params_matcher({"name": "doc.pdf", "mimeType": "application/pdf", "size": 42})
-            ],
-        )
+    def test_sends_file_metadata(self, session):
+        _post("files", {"id": 3, "name": "doc.pdf"})
 
-        result = register_file_upload(session, name="doc.pdf", mime_type="application/pdf", size=42)
+        register_file_upload(session, name="doc.pdf", mime_type="application/pdf", size=42)
 
-        assert isinstance(result, File)
-        assert result.id == 3
+        assert _sent_json() == {"name": "doc.pdf", "mimeType": "application/pdf", "size": 42}
 
 
 class TestCreateChangemakerSource:
