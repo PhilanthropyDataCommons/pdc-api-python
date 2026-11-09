@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: just lint
+      - run: uv build
+      - name: Check generated models match the spec
+        run: |
+          just codegen
+          git diff --exit-code src/pdc_api_client/_generated.py
+
+  test:
+    name: Unit tests (Python ${{ matrix.python }}, ${{ matrix.resolution }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: "3.12"
+            resolution: lowest-direct
+          - python: "3.14"
+            resolution: highest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the package and test tools
+        run: |
+          uv venv
+          uv pip install --resolution ${{ matrix.resolution }} ".[testing,seeding]" "pytest>=9" "pytest-cov>=7"
+      - run: .venv/bin/python -m pytest
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          repository: PhilanthropyDataCommons/service
+          path: service
+      - name: Add hosts entries for the PDC stack
+        run: echo "127.0.0.1 pdc-api pdc-auth pdc-s3" | sudo tee -a /etc/hosts
+      - name: Start the PDC stack
+        working-directory: service
+        run: docker compose -f compose-ci.yml up -d --wait
+        timeout-minutes: 5
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: just integration
+        timeout-minutes: 5

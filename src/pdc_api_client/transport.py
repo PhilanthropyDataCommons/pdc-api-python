@@ -1,0 +1,84 @@
+from urllib.parse import urljoin
+
+import requests
+
+from pdc_api_client import errors
+from pdc_api_client.token import TokenProvider
+
+_ERRORS_BY_STATUS = {
+    400: errors.PDCBadRequestError,
+    401: errors.PDCUnauthorizedError,
+    403: errors.PDCForbiddenError,
+    404: errors.PDCNotFoundError,
+    409: errors.PDCConflictError,
+    422: errors.PDCUnprocessableEntityError,
+}
+
+
+class APISession:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        token_provider: TokenProvider,
+        timeout: int = 15,
+        request_kwargs: dict | None = None,
+        keep_alive: bool = True,
+    ):
+        # Without the trailing slash, urljoin drops the last path segment of a base like "https://host/api".
+        self._base_url = base_url if base_url.endswith("/") else base_url + "/"
+        self.auth = token_provider
+        self._timeout = timeout
+        self._request_kwargs = request_kwargs or {}
+        self._session = requests.Session()
+        self._session.headers["Accept"] = "application/json"
+        # Idle pooled connections can be closed server-side and raise RemoteDisconnected on reuse.
+        if not keep_alive:
+            self._session.headers["Connection"] = "close"
+
+    def _make_api_url(self, path):
+        return urljoin(self._base_url, path.lstrip("/"))
+
+    def _make_api_request(self, method, url, data=None, params=None, **kwargs):
+        if not url.startswith("http"):
+            url = self._make_api_url(url)
+        timeout = kwargs.pop("timeout", self._timeout)
+
+        self.auth.refresh_if_necessary()
+        self._session.headers["Authorization"] = f"Bearer {self.auth.get_token()}"
+
+        try:
+            response = self._session.request(
+                method, url, data=data, params=params, timeout=timeout, **{**self._request_kwargs, **kwargs}
+            )
+        except requests.Timeout as exc:
+            raise errors.PDCServiceError(detail="Request to PDC timed out") from exc
+        except requests.ConnectionError as exc:
+            raise errors.PDCServiceError(detail="Could not connect to PDC") from exc
+
+        if response.status_code >= 300:
+            try:
+                detail = response.json()
+            except ValueError:
+                detail = response.text or f"HTTP {response.status_code}"
+            if response.status_code >= 500:
+                error_class = errors.PDCServiceError
+            else:
+                error_class = _ERRORS_BY_STATUS.get(response.status_code, errors.PDCException)
+            raise error_class(detail=detail, code=response.status_code)
+        return response
+
+    def get(self, path, **kwargs):
+        return self._make_api_request("GET", path, **kwargs)
+
+    def put(self, path, **kwargs):
+        return self._make_api_request("PUT", path, **kwargs)
+
+    def post(self, path, **kwargs):
+        return self._make_api_request("POST", path, **kwargs)
+
+    def patch(self, path, **kwargs):
+        return self._make_api_request("PATCH", path, **kwargs)
+
+    def delete(self, path, **kwargs):
+        return self._make_api_request("DELETE", path, **kwargs)

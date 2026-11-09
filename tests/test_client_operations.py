@@ -1,0 +1,274 @@
+import json
+
+import pytest
+import responses
+
+from pdc_api_client.client import (
+    create_changemaker_proposal,
+    create_changemaker_proposal_version,
+    get_application_form,
+    get_application_form_by_name,
+    get_bundle_page,
+    get_changemaker,
+    get_changemaker_proposal,
+    get_funder,
+    get_organization_by_keycloak_id,
+    get_proposal,
+    link_changemaker_to_proposal,
+    register_file_upload,
+)
+from pdc_api_client.errors import (
+    ApplicationFormNotFoundError,
+    ChangemakerNotFoundError,
+    FunderNotFoundError,
+    ProposalNotFoundError,
+)
+from pdc_api_client.models import (
+    Changemaker,
+    ChangemakerApplicationForm,
+    ChangemakerBundle,
+    ChangemakerProposal,
+    File,
+    Funder,
+    FunderCollaborativeMemberBundle,
+    NewProposalFieldValue,
+    NewProposalVersion,
+    Organization,
+    Proposal,
+    ProposalVersion,
+)
+from pdc_api_client.testing import (
+    application_form_payload,
+    bundle,
+    changemaker_payload,
+    changemaker_proposal_payload,
+    funder_payload,
+    proposal_payload,
+    proposal_version_payload,
+)
+
+BASE_URL = "https://pdc.test"
+
+
+def _post(path, payload, *, match=None):
+    responses.add(
+        method=responses.POST,
+        url=f"{BASE_URL}/{path}",
+        json=payload,
+        status=200,
+        match=match or [],
+    )
+
+
+class TestGetProposal:
+    def test_returns_validated_proposal(self, session, add_proposal_response):
+        add_proposal_response(id=100)
+
+        result = get_proposal(session, proposal_id=100)
+
+        assert isinstance(result, Proposal)
+        assert result.id == 100
+
+    def test_404_translates_to_proposal_not_found(self, session, add_proposal_response):
+        add_proposal_response(id=999, status=404, payload={})
+
+        with pytest.raises(ProposalNotFoundError):
+            get_proposal(session, proposal_id=999)
+
+
+class TestGetChangemaker:
+    def test_returns_validated_changemaker(self, session, add_changemaker_response):
+        add_changemaker_response(id=10)
+
+        result = get_changemaker(session, changemaker_id=10)
+
+        assert isinstance(result, Changemaker)
+        assert result.id == 10
+
+    def test_404_translates_to_changemaker_not_found(self, session, add_changemaker_response):
+        add_changemaker_response(id=999, status=404, payload={})
+
+        with pytest.raises(ChangemakerNotFoundError):
+            get_changemaker(session, changemaker_id=999)
+
+
+class TestGetFunder:
+    def test_returns_validated_funder(self, session, add_funder_response):
+        add_funder_response(short_code="acme")
+
+        result = get_funder(session, short_code="acme")
+
+        assert isinstance(result, Funder)
+        assert result.short_code == "acme"
+
+    def test_404_translates_to_funder_not_found(self, session, add_funder_response):
+        add_funder_response(short_code="missing", status=404, payload={})
+
+        with pytest.raises(FunderNotFoundError):
+            get_funder(session, short_code="missing")
+
+
+class TestGetChangemakerProposal:
+    def test_returns_first_entry_as_model(self, session, add_json_response):
+        add_json_response(
+            path="changemakerProposals",
+            payload=bundle([changemaker_proposal_payload(id=5)]),
+            query_params={"proposal": 100},
+        )
+
+        result = get_changemaker_proposal(session, proposal_id=100)
+
+        assert isinstance(result, ChangemakerProposal)
+        assert result.id == 5
+
+    def test_empty_bundle_translates_to_proposal_not_found(self, session, add_json_response):
+        add_json_response(path="changemakerProposals", payload=bundle([]), query_params={"proposal": 100})
+
+        with pytest.raises(ProposalNotFoundError):
+            get_changemaker_proposal(session, proposal_id=100)
+
+
+class TestGetOrganizationByKeycloakId:
+    def test_parses_organization_with_funder_facet(self, session, add_organization_response):
+        add_organization_response(keycloak_id="kc-uuid", funder=funder_payload(short_code="acme"))
+
+        result = get_organization_by_keycloak_id(session, keycloak_id="kc-uuid")
+
+        assert isinstance(result, Organization)
+        assert result.funder.short_code == "acme"
+        assert result.changemaker is None
+
+
+class TestGetApplicationForm:
+    def test_parses_application_form(self, session, add_application_form_response):
+        add_application_form_response(id=7)
+
+        result = get_application_form(session, form_id=7)
+
+        assert isinstance(result, ChangemakerApplicationForm)
+        assert result.id == 7
+
+
+class TestGetApplicationFormByName:
+    def _add_forms(self, *names):
+        forms = [{**application_form_payload(id=i), "name": name} for i, name in enumerate(names, start=1)]
+        responses.add(responses.GET, f"{BASE_URL}/applicationForms", json=bundle(forms))
+
+    def test_returns_form_with_matching_name(self, session):
+        self._add_forms("Other", "Wanted")
+
+        assert get_application_form_by_name(session, name="Wanted").id == 2
+
+    def test_raises_not_found_when_no_form_has_the_name(self, session):
+        self._add_forms("Other")
+
+        with pytest.raises(ApplicationFormNotFoundError):
+            get_application_form_by_name(session, name="Wanted")
+
+
+class TestCreateChangemakerProposal:
+    def test_posts_data_and_returns_proposal(self, session):
+        data = {"opportunityId": 5, "externalId": "ext-1"}
+        _post("proposals", proposal_payload(id=100), match=[responses.matchers.json_params_matcher(data)])
+
+        result = create_changemaker_proposal(session, data=data)
+
+        assert isinstance(result, Proposal)
+        assert result.id == 100
+
+
+class TestCreateChangemakerProposalVersion:
+    def test_posts_aliased_body_and_returns_version(self, session):
+        new_version = NewProposalVersion(
+            proposal_id=100,
+            source_id=1,
+            application_form_id=7,
+            field_values=[NewProposalFieldValue(application_form_field_id=3, position=1, value="hi")],
+        )
+        expected_body = json.loads(new_version.model_dump_json(by_alias=True))
+        _post(
+            "proposalVersions",
+            proposal_version_payload(id=1, proposal_id=100),
+            match=[responses.matchers.json_params_matcher(expected_body)],
+        )
+
+        result = create_changemaker_proposal_version(session, proposal_version=new_version)
+
+        assert isinstance(result, ProposalVersion)
+        assert result.proposal_id == 100
+
+
+class TestLinkChangemakerToProposal:
+    def test_posts_ids_and_returns_link(self, session):
+        _post(
+            "changemakerProposals",
+            changemaker_proposal_payload(id=9, changemaker_id=10, proposal_id=100),
+            match=[responses.matchers.json_params_matcher({"changemakerId": 10, "proposalId": 100})],
+        )
+
+        result = link_changemaker_to_proposal(session, changemaker_id=10, proposal_id=100)
+
+        assert isinstance(result, ChangemakerProposal)
+        assert result.id == 9
+
+
+class TestRegisterFileUpload:
+    def test_posts_metadata_and_returns_file(self, session):
+        _post(
+            "files",
+            {"id": 3, "name": "doc.pdf"},
+            match=[
+                responses.matchers.json_params_matcher({"name": "doc.pdf", "mimeType": "application/pdf", "size": 42})
+            ],
+        )
+
+        result = register_file_upload(session, name="doc.pdf", mime_type="application/pdf", size=42)
+
+        assert isinstance(result, File)
+        assert result.id == 3
+
+
+class TestGetBundlePage:
+    def test_defaults_count_to_bundle_default_page_size(self, session, add_page_response):
+        add_page_response(ChangemakerBundle, payload=bundle([changemaker_payload()]))
+
+        result = get_bundle_page(session, ChangemakerBundle)
+
+        assert isinstance(result, ChangemakerBundle)
+        assert result.entries[0].id == 1
+
+    def test_forwards_page_count_content_and_extra_params(self, session, add_page_response):
+        add_page_response(
+            ChangemakerBundle,
+            payload=bundle([]),
+            page=2,
+            count_per_page=25,
+            content="needle",
+            extra_params={"isCollaborative": "true"},
+        )
+
+        result = get_bundle_page(
+            session,
+            ChangemakerBundle,
+            page=2,
+            count_per_page=25,
+            content="needle",
+            extra_params={"isCollaborative": "true"},
+        )
+
+        assert result.entries == []
+
+    def test_formats_endpoint_with_path_params(self, session, add_page_response):
+        add_page_response(
+            FunderCollaborativeMemberBundle,
+            payload=bundle([]),
+            path_params={"funder_collaborative_short_code": "acme"},
+        )
+
+        result = get_bundle_page(
+            session,
+            FunderCollaborativeMemberBundle,
+            path_params={"funder_collaborative_short_code": "acme"},
+        )
+
+        assert result.total == 0
