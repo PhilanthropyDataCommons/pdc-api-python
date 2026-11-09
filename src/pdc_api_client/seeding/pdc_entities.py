@@ -3,7 +3,14 @@ from dataclasses import dataclass, field
 
 from faker import Faker
 
-from pdc_api_client.client import get_bundle_page, get_changemaker_field_values, get_organization_by_keycloak_id
+from pdc_api_client.client import (
+    create_changemaker_field_value,
+    create_changemaker_field_value_batch,
+    create_changemaker_source,
+    get_bundle_page,
+    get_changemaker_field_values,
+    get_organization_by_keycloak_id,
+)
 from pdc_api_client.errors import PDCNotFoundError
 from pdc_api_client.models import (
     BaseField,
@@ -388,13 +395,13 @@ def seed_source(
     changemaker_id: int | None = None,
 ) -> Source:
     label = label or f"{fake.catch_phrase()} Source"
+    if changemaker_id is not None:
+        return create_changemaker_source(session, changemaker_id=changemaker_id, label=label)
     payload: dict = {"label": label}
     if data_provider_short_code:
         payload["dataProviderShortCode"] = data_provider_short_code
     elif funder_short_code:
         payload["funderShortCode"] = funder_short_code
-    elif changemaker_id is not None:
-        payload["changemakerId"] = changemaker_id
     else:
         funder = seed_funder(session)
         payload["funderShortCode"] = funder.short_code
@@ -520,38 +527,6 @@ def link_changemaker_to_proposal(
     return response.json()
 
 
-def seed_changemaker_field_value_batch(
-    session: APISession,
-    *,
-    source: Source,
-    notes: str | None = None,
-) -> ChangemakerFieldValueBatch:
-    response = session.post("/changemakerFieldValueBatches", json={"sourceId": source.id, "notes": notes})
-    return ChangemakerFieldValueBatch.model_validate(response.json())
-
-
-def seed_changemaker_field_value(
-    session: APISession,
-    *,
-    changemaker: ShallowChangemaker,
-    base_field_short_code: str,
-    value: str,
-    batch: ChangemakerFieldValueBatch,
-    good_as_of: str | None = None,
-) -> ChangemakerFieldValue:
-    response = session.post(
-        "/changemakerFieldValues",
-        json={
-            "changemakerId": changemaker.id,
-            "baseFieldShortCode": base_field_short_code,
-            "value": value,
-            "batchId": batch.id,
-            "goodAsOf": good_as_of,
-        },
-    )
-    return ChangemakerFieldValue.model_validate(response.json())
-
-
 _CHANGEMAKER_PROFILE_FIELDS: tuple[tuple[str, str, str], ...] = (
     ("organization_legal_name", "Legal name", "string"),
     ("organization_website", "Website", "url"),
@@ -608,14 +583,14 @@ def seed_changemaker_profile_fields(
         label=source_label or f"{data_provider.name} nonprofit profiles",
         data_provider_short_code=data_provider.short_code,
     )
-    batch = seed_changemaker_field_value_batch(session, source=source, notes=notes)
+    batch = create_changemaker_field_value_batch(session, source_id=source.id, notes=notes)
     field_values = [
-        seed_changemaker_field_value(
+        create_changemaker_field_value(
             session,
-            changemaker=changemaker,
+            changemaker_id=changemaker.id,
             base_field_short_code=short_code,
+            batch_id=batch.id,
             value=value,
-            batch=batch,
         )
         for short_code, _, _, value in field_seeds
     ]
