@@ -128,6 +128,21 @@ def get_initiative_field_values(
             yield InitiativeFieldValue.model_validate(entry)
 
 
+def create_initiative(session: APISession, *, changemaker_id: int, title: str) -> Initiative:
+    response = session.post("initiatives", json={"changemakerId": changemaker_id, "title": title})
+    return Initiative.model_validate(response.json())
+
+
+def create_initiative_field_value(
+    session: APISession, *, initiative_id: int, base_field_short_code: str, value: str, source_id: int
+) -> InitiativeFieldValue:
+    response = session.post(
+        f"initiatives/{initiative_id}/fieldValues",
+        json={"baseFieldShortCode": base_field_short_code, "value": value, "sourceId": source_id, "goodAsOf": None},
+    )
+    return InitiativeFieldValue.model_validate(response.json())
+
+
 def get_organization_by_keycloak_id(session: APISession, *, keycloak_id: str) -> Organization:
     response = session.get(f"organizations/{keycloak_id}")
     return Organization.model_validate(response.json())

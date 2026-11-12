@@ -7,6 +7,8 @@ from pdc_api_client.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
     create_changemaker_source,
+    create_initiative,
+    create_initiative_field_value,
     get_bundle_page,
     get_changemaker_field_values,
     get_organization_by_keycloak_id,
@@ -410,9 +412,7 @@ def seed_source(
 
 
 def seed_initiative(session: APISession, *, changemaker_id: int, title: str | None = None) -> Initiative:
-    title = title or fake.catch_phrase()
-    response = session.post("/initiatives", json={"changemakerId": changemaker_id, "title": title})
-    return Initiative.model_validate(response.json())
+    return create_initiative(session, changemaker_id=changemaker_id, title=title or fake.catch_phrase())
 
 
 def seed_initiative_field_value(
@@ -423,16 +423,13 @@ def seed_initiative_field_value(
     source: Source,
     value: str,
 ) -> InitiativeFieldValue:
-    response = session.post(
-        f"/initiatives/{initiative_id}/fieldValues",
-        json={
-            "baseFieldShortCode": base_field_short_code,
-            "sourceId": source.id,
-            "value": value,
-            "goodAsOf": None,
-        },
+    return create_initiative_field_value(
+        session,
+        initiative_id=initiative_id,
+        base_field_short_code=base_field_short_code,
+        value=value,
+        source_id=source.id,
     )
-    return InitiativeFieldValue.model_validate(response.json())
 
 
 def seed_application_form(

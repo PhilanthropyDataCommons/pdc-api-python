@@ -120,6 +120,8 @@ version = create_changemaker_proposal_version(
 
 A changemaker can also write its own profile values. `create_changemaker_source` creates a source the changemaker owns, `create_changemaker_field_value_batch` opens a batch under it, and `create_changemaker_field_value` adds one value to the batch. PDC ranks changemaker-sourced values above funder and data-provider values.
 
+`create_initiative` creates an initiative led by a changemaker, and `create_initiative_field_value` adds a value to it from a given source.
+
 Uploading a file takes two steps. `register_file_upload` creates the file record and returns a presigned S3 POST, and `upload_file_to_s3_presigned_url` sends the bytes to it.
 
 ## Permission grants

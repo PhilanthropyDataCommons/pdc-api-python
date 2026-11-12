@@ -10,6 +10,8 @@ from pdc_api_client.client import (
     create_changemaker_proposal,
     create_changemaker_proposal_version,
     create_changemaker_source,
+    create_initiative,
+    create_initiative_field_value,
     get_application_form,
     get_application_form_by_name,
     get_bundle_page,
@@ -43,6 +45,8 @@ from pdc_api_client.testing import (
     changemaker_payload,
     changemaker_proposal_payload,
     funder_payload,
+    initiative_field_value_payload,
+    initiative_payload,
     proposal_payload,
     proposal_version_payload,
     source_payload,
@@ -242,6 +246,31 @@ class TestCreateChangemakerFieldValue:
             )
 
         assert not responses.calls
+
+
+class TestCreateInitiative:
+    def test_sends_changemaker_and_title(self, session):
+        _post("initiatives", initiative_payload())
+
+        create_initiative(session, changemaker_id=10, title="Summer meals")
+
+        assert _sent_json() == {"changemakerId": 10, "title": "Summer meals"}
+
+
+class TestCreateInitiativeFieldValue:
+    def test_posts_to_initiative_with_null_good_as_of(self, session):
+        _post("initiatives/5/fieldValues", initiative_field_value_payload())
+
+        create_initiative_field_value(
+            session, initiative_id=5, base_field_short_code="initiative_description", value="Wells", source_id=7
+        )
+
+        assert _sent_json() == {
+            "baseFieldShortCode": "initiative_description",
+            "value": "Wells",
+            "sourceId": 7,
+            "goodAsOf": None,
+        }
 
 
 class TestGetBundlePage:

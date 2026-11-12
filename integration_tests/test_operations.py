@@ -11,6 +11,8 @@ from pdc_api_client.client import (
     create_changemaker_proposal,
     create_changemaker_proposal_version,
     create_changemaker_source,
+    create_initiative,
+    create_initiative_field_value,
     get_application_form,
     get_application_form_by_name,
     get_basefields,
@@ -500,6 +502,22 @@ class TestInitiatives:
 
         assert isinstance(field_value, InitiativeFieldValue)
         assert (field_value.base_field_short_code, field_value.value) == (short_code, "Clean water")
+
+    def test_create_initiative_with_a_field_value(self, api_session, seeded_pdc_stack):
+        short_code = seeded_pdc_stack.application_form.fields[0]["baseFieldShortCode"]
+
+        initiative = create_initiative(api_session, changemaker_id=seeded_pdc_stack.changemaker.id, title="Clean water")
+        create_initiative_field_value(
+            api_session,
+            initiative_id=initiative.id,
+            base_field_short_code=short_code,
+            value="Wells for the valley",
+            source_id=seeded_pdc_stack.source.id,
+        )
+
+        assert get_initiative(api_session, initiative_id=initiative.id).title == "Clean water"
+        [field_value] = get_initiative_field_values(api_session, initiative_id=initiative.id)
+        assert (field_value.base_field_short_code, field_value.value) == (short_code, "Wells for the valley")
 
 
 class TestOrganizations:
