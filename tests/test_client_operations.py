@@ -258,19 +258,41 @@ class TestCreateInitiative:
 
 
 class TestCreateInitiativeFieldValue:
-    def test_posts_to_initiative_with_null_good_as_of(self, session):
+    @pytest.mark.parametrize(
+        ("good_as_of", "sent"),
+        [(datetime(2026, 1, 31, 9, 0, tzinfo=UTC), "2026-01-31T09:00:00+00:00"), (None, None)],
+    )
+    def test_sends_good_as_of_as_iso_string(self, session, good_as_of, sent):
         _post("initiatives/5/fieldValues", initiative_field_value_payload())
 
         create_initiative_field_value(
-            session, initiative_id=5, base_field_short_code="initiative_description", value="Wells", source_id=7
+            session,
+            initiative_id=5,
+            base_field_short_code="initiative_description",
+            value="Wells",
+            source_id=7,
+            good_as_of=good_as_of,
         )
 
         assert _sent_json() == {
             "baseFieldShortCode": "initiative_description",
             "value": "Wells",
             "sourceId": 7,
-            "goodAsOf": None,
+            "goodAsOf": sent,
         }
+
+    def test_rejects_good_as_of_without_timezone(self, session):
+        with pytest.raises(ValueError, match="good_as_of must include a timezone"):
+            create_initiative_field_value(
+                session,
+                initiative_id=5,
+                base_field_short_code="initiative_description",
+                value="Wells",
+                source_id=7,
+                good_as_of=datetime(2026, 1, 31, 9, 0),
+            )
+
+        assert not responses.calls
 
 
 class TestGetBundlePage:

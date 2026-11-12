@@ -505,6 +505,7 @@ class TestInitiatives:
 
     def test_create_initiative_with_a_field_value(self, api_session, seeded_pdc_stack):
         short_code = seeded_pdc_stack.application_form.fields[0]["baseFieldShortCode"]
+        good_as_of = datetime(2026, 1, 31, 9, 0, tzinfo=UTC)
 
         initiative = create_initiative(api_session, changemaker_id=seeded_pdc_stack.changemaker.id, title="Clean water")
         create_initiative_field_value(
@@ -513,11 +514,16 @@ class TestInitiatives:
             base_field_short_code=short_code,
             value="Wells for the valley",
             source_id=seeded_pdc_stack.source.id,
+            good_as_of=good_as_of,
         )
 
         assert get_initiative(api_session, initiative_id=initiative.id).title == "Clean water"
         [field_value] = get_initiative_field_values(api_session, initiative_id=initiative.id)
-        assert (field_value.base_field_short_code, field_value.value) == (short_code, "Wells for the valley")
+        assert (field_value.base_field_short_code, field_value.value, field_value.good_as_of) == (
+            short_code,
+            "Wells for the valley",
+            good_as_of,
+        )
 
 
 class TestOrganizations:
