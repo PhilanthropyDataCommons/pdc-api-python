@@ -128,6 +128,40 @@ def get_initiative_field_values(
             yield InitiativeFieldValue.model_validate(entry)
 
 
+def _good_as_of_json(good_as_of: datetime | None) -> str | None:
+    if good_as_of is None:
+        return None
+    if good_as_of.tzinfo is None:
+        raise ValueError("good_as_of must include a timezone")
+    return good_as_of.isoformat()
+
+
+def create_initiative(session: APISession, *, changemaker_id: int, title: str) -> Initiative:
+    response = session.post("initiatives", json={"changemakerId": changemaker_id, "title": title})
+    return Initiative.model_validate(response.json())
+
+
+def create_initiative_field_value(
+    session: APISession,
+    *,
+    initiative_id: int,
+    base_field_short_code: str,
+    value: str,
+    source_id: int,
+    good_as_of: datetime | None = None,
+) -> InitiativeFieldValue:
+    response = session.post(
+        f"initiatives/{initiative_id}/fieldValues",
+        json={
+            "baseFieldShortCode": base_field_short_code,
+            "value": value,
+            "sourceId": source_id,
+            "goodAsOf": _good_as_of_json(good_as_of),
+        },
+    )
+    return InitiativeFieldValue.model_validate(response.json())
+
+
 def get_organization_by_keycloak_id(session: APISession, *, keycloak_id: str) -> Organization:
     response = session.get(f"organizations/{keycloak_id}")
     return Organization.model_validate(response.json())
@@ -232,8 +266,6 @@ def create_changemaker_field_value(
     value: str,
     good_as_of: datetime | None = None,
 ) -> ChangemakerFieldValue:
-    if good_as_of is not None and good_as_of.tzinfo is None:
-        raise ValueError("good_as_of must include a timezone")
     response = session.post(
         "changemakerFieldValues",
         json={
@@ -241,7 +273,7 @@ def create_changemaker_field_value(
             "baseFieldShortCode": base_field_short_code,
             "batchId": batch_id,
             "value": value,
-            "goodAsOf": good_as_of.isoformat() if good_as_of else None,
+            "goodAsOf": _good_as_of_json(good_as_of),
         },
     )
     return ChangemakerFieldValue.model_validate(response.json())

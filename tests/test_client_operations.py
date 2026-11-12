@@ -10,6 +10,8 @@ from pdc_api_client.client import (
     create_changemaker_proposal,
     create_changemaker_proposal_version,
     create_changemaker_source,
+    create_initiative,
+    create_initiative_field_value,
     get_application_form,
     get_application_form_by_name,
     get_bundle_page,
@@ -43,6 +45,8 @@ from pdc_api_client.testing import (
     changemaker_payload,
     changemaker_proposal_payload,
     funder_payload,
+    initiative_field_value_payload,
+    initiative_payload,
     proposal_payload,
     proposal_version_payload,
     source_payload,
@@ -238,6 +242,53 @@ class TestCreateChangemakerFieldValue:
                 base_field_short_code="organization_city",
                 batch_id=20,
                 value="Springfield",
+                good_as_of=datetime(2026, 1, 31, 9, 0),
+            )
+
+        assert not responses.calls
+
+
+class TestCreateInitiative:
+    def test_sends_changemaker_and_title(self, session):
+        _post("initiatives", initiative_payload())
+
+        create_initiative(session, changemaker_id=10, title="Summer meals")
+
+        assert _sent_json() == {"changemakerId": 10, "title": "Summer meals"}
+
+
+class TestCreateInitiativeFieldValue:
+    @pytest.mark.parametrize(
+        ("good_as_of", "sent"),
+        [(datetime(2026, 1, 31, 9, 0, tzinfo=UTC), "2026-01-31T09:00:00+00:00"), (None, None)],
+    )
+    def test_sends_good_as_of_as_iso_string(self, session, good_as_of, sent):
+        _post("initiatives/5/fieldValues", initiative_field_value_payload())
+
+        create_initiative_field_value(
+            session,
+            initiative_id=5,
+            base_field_short_code="initiative_description",
+            value="Wells",
+            source_id=7,
+            good_as_of=good_as_of,
+        )
+
+        assert _sent_json() == {
+            "baseFieldShortCode": "initiative_description",
+            "value": "Wells",
+            "sourceId": 7,
+            "goodAsOf": sent,
+        }
+
+    def test_rejects_good_as_of_without_timezone(self, session):
+        with pytest.raises(ValueError, match="good_as_of must include a timezone"):
+            create_initiative_field_value(
+                session,
+                initiative_id=5,
+                base_field_short_code="initiative_description",
+                value="Wells",
+                source_id=7,
                 good_as_of=datetime(2026, 1, 31, 9, 0),
             )
 

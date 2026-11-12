@@ -31,5 +31,6 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 
 - Readability, simplicity, and elegance, in that order.
 - Write the test before the code. Assert transformations and branch behavior, not that a mock returned what it was given.
+- Every client function gets an integration test against PDC as well as unit tests, unless PDC's CI stack can't support it.
 - No docstrings, and comments only for a non-obvious why such as a PDC quirk, in one line.
 - Lower bounds only in `pyproject.toml`, and no lockfile. CI tests the lowest allowed versions on the oldest supported Python and the newest on the newest, so raise a bound when you use something newer, and fix breakage from new releases rather than pinning.

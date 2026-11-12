@@ -4,6 +4,10 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
+## Unreleased
+
+- `create_initiative` and `create_initiative_field_value` create an initiative and add a field value to it. `seed_initiative` and `seed_initiative_field_value` now call them.
+
 ## 0.2.0 (2026-11-09)
 
 - `create_changemaker_source`, `create_changemaker_field_value_batch`, and `create_changemaker_field_value` write a changemaker's own field values.
