@@ -4,6 +4,13 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
+## Unreleased
+
+- The package is now type checked with mypy (including strict mode), pyrefly, and ty, so its `py.typed` marker is accurate. The testing helpers and seeding modules are fully annotated.
+- The minimum versions are now `requests>=2.34`, `urllib3>=2`, and, for the `seeding` extra, `faker>=26`, the first releases that ship type information.
+- `APISession(timeout=...)` accepts a float.
+- `KeycloakAdmin.ensure_organization` raises `LookupError` if Keycloak creates an organization without returning its id.
+
 ## 0.2.1 (2026-11-12)
 
 - `create_initiative` and `create_initiative_field_value` create an initiative and add a field value to it. `seed_initiative` and `seed_initiative_field_value` now call them.

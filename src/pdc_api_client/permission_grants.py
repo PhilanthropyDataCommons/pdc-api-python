@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import Field, TypeAdapter, field_validator, model_validator
 
-from pdc_api_client._base import PageableBundle
 from pdc_api_client.client import get_bundle_page
 from pdc_api_client.models import (
     BaseFieldCategory,
@@ -195,11 +194,8 @@ PermissionGrant = Annotated[
 
 _PERMISSION_GRANT_ADAPTER: TypeAdapter[PermissionGrant] = TypeAdapter(PermissionGrant)
 
-# PDC rejects write bodies that include server-managed fields.
-_READONLY_FIELDS = {"id", "created_by", "created_at"}
 
-
-class PermissionGrantBundle(PageableBundle):
+class PermissionGrantBundle(BaseSchema):
     pdc_endpoint: ClassVar[str] = _ENDPOINT
     default_page_size: ClassVar[int] = _DEFAULT_PAGE_SIZE
     entries: list[PermissionGrant]
@@ -218,7 +214,7 @@ class DefaultPermissionGrant(_PermissionGrantBase):
         return value
 
 
-class DefaultPermissionGrantBundle(PageableBundle):
+class DefaultPermissionGrantBundle(BaseSchema):
     pdc_endpoint: ClassVar[str] = _DEFAULT_ENDPOINT
     default_page_size: ClassVar[int] = _DEFAULT_PAGE_SIZE
     entries: list[DefaultPermissionGrant]
@@ -230,8 +226,8 @@ def _validate_grant(payload: dict[str, Any]) -> PermissionGrant:
 
 
 def _grant_to_payload(spec: PermissionGrant | DefaultPermissionGrant) -> dict[str, Any]:
-    # PDC rejects the unset grantee key, so drop None values.
-    return spec.model_dump(mode="json", by_alias=True, exclude=_READONLY_FIELDS, exclude_none=True)
+    # PDC rejects server-managed fields and the unset grantee key in write bodies.
+    return spec.model_dump(mode="json", by_alias=True, exclude={"id", "created_by", "created_at"}, exclude_none=True)
 
 
 def list_permission_grants(

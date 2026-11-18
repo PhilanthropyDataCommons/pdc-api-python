@@ -2,6 +2,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+import requests
 from faker import Faker
 
 from pdc_api_client.client import (
@@ -94,9 +95,14 @@ def make_proposal_field_seeds(*, include_numbers: bool = False) -> list[tuple[st
 
 def make_changemaker_name(*, include_numbers: bool = False) -> str:
     if include_numbers:
-        suffix = fake.random_element(("Foundation", "Initiative", "Collective", "Project", "Alliance"))
+        suffix: str = fake.random_element(("Foundation", "Initiative", "Collective", "Project", "Alliance"))
         return f"{fake.last_name()} {fake.random_int(min=100, max=9999)} {suffix}"
     return fake.company()
+
+
+def _json_object(response: requests.Response) -> dict[str, Any]:
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 def _token(label: str) -> str:
@@ -175,8 +181,7 @@ def seed_funder_collaborative_member(
     response = session.post(
         f"/funders/{collaborative.short_code}/members/{member.short_code}",
     )
-    payload: dict[str, Any] = response.json()
-    return payload
+    return _json_object(response)
 
 
 @dataclass
@@ -359,8 +364,7 @@ def seed_fiscal_sponsorship(
         f"/changemakers/{sponsee.id}/fiscalSponsors/{sponsor.id}",
         json=body,
     )
-    payload: dict[str, Any] = response.json()
-    return payload
+    return _json_object(response)
 
 
 def seed_funder_collaborative_invitation(
@@ -374,8 +378,7 @@ def seed_funder_collaborative_invitation(
         # PDC rejects a missing body even though no fields are required.
         json={},
     )
-    payload: dict[str, Any] = response.json()
-    return payload
+    return _json_object(response)
 
 
 def respond_to_funder_collaborative_invitation(
@@ -389,8 +392,7 @@ def respond_to_funder_collaborative_invitation(
         f"/funders/{invited.short_code}/invitations/received/{collaborative.short_code}",
         json={"invitationStatus": status},
     )
-    payload: dict[str, Any] = response.json()
-    return payload
+    return _json_object(response)
 
 
 def seed_source(
@@ -526,8 +528,7 @@ def link_changemaker_to_proposal(
             "proposalId": proposal.id,
         },
     )
-    payload: dict[str, Any] = response.json()
-    return payload
+    return _json_object(response)
 
 
 _CHANGEMAKER_PROFILE_FIELDS: tuple[tuple[str, str, str], ...] = (

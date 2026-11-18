@@ -1,15 +1,16 @@
 from typing import Any
+from uuid import UUID
 
 import responses
 
-from pdc_api_client._base import PageableBundle
+from pdc_api_client.client import PageableBundle
 
 CREATED_AT = "2026-01-01T00:00:00Z"
 CREATED_BY = "00000000-0000-0000-0000-000000000009"
 
 
 def changemaker_payload(
-    *, id: int = 1, name: str = "Acme", keycloak_org_id: str | None = None, tax_id: str = "12-3456789"
+    *, id: int = 1, name: str = "Acme", keycloak_org_id: str | UUID | None = None, tax_id: str = "12-3456789"
 ) -> dict[str, Any]:
     return {
         "id": id,
@@ -28,7 +29,7 @@ def funder_payload(
     *,
     short_code: str = "acme",
     name: str = "Acme Foundation",
-    keycloak_org_id: str | None = None,
+    keycloak_org_id: str | UUID | None = None,
     is_collaborative: bool = False,
 ) -> dict[str, Any]:
     return {
@@ -43,7 +44,7 @@ def funder_payload(
 
 
 def data_provider_payload(
-    *, short_code: str = "pdw", name: str = "Philanthropy Data Warehouse", keycloak_org_id: str | None = None
+    *, short_code: str = "pdw", name: str = "Philanthropy Data Warehouse", keycloak_org_id: str | UUID | None = None
 ) -> dict[str, Any]:
     return {
         "shortCode": short_code,
@@ -212,7 +213,7 @@ def add_json_response(
     *,
     base_url: str,
     path: str,
-    payload: Any,
+    payload: dict[str, Any] | list[Any],
     status: int = 200,
     query_params: dict[str, Any] | None = None,
 ) -> None:
@@ -228,7 +229,7 @@ def add_json_response(
 
 
 def add_changemaker_response(
-    *, base_url: str, id: int = 1, status: int = 200, payload: Any = None, **payload_kwargs: Any
+    *, base_url: str, id: int = 1, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
 ) -> None:
     add_json_response(
         base_url=base_url,
@@ -239,7 +240,12 @@ def add_changemaker_response(
 
 
 def add_funder_response(
-    *, base_url: str, short_code: str = "acme", status: int = 200, payload: Any = None, **payload_kwargs: Any
+    *,
+    base_url: str,
+    short_code: str = "acme",
+    status: int = 200,
+    payload: dict[str, Any] | None = None,
+    **payload_kwargs: Any,
 ) -> None:
     add_json_response(
         base_url=base_url,
@@ -250,7 +256,7 @@ def add_funder_response(
 
 
 def add_proposal_response(
-    *, base_url: str, id: int = 100, status: int = 200, payload: Any = None, **payload_kwargs: Any
+    *, base_url: str, id: int = 100, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
 ) -> None:
     add_json_response(
         base_url=base_url,
@@ -261,7 +267,7 @@ def add_proposal_response(
 
 
 def add_application_form_response(
-    *, base_url: str, id: int = 7, status: int = 200, payload: Any = None, **payload_kwargs: Any
+    *, base_url: str, id: int = 7, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
 ) -> None:
     add_json_response(
         base_url=base_url,
@@ -272,7 +278,7 @@ def add_application_form_response(
 
 
 def add_organization_response(
-    *, base_url: str, keycloak_id: str, status: int = 200, payload: Any = None, **payload_kwargs: Any
+    *, base_url: str, keycloak_id: str, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
 ) -> None:
     add_json_response(
         base_url=base_url,
@@ -286,7 +292,7 @@ def add_page_response(
     bundle_type: type[PageableBundle],
     *,
     base_url: str,
-    payload: Any,
+    payload: dict[str, Any],
     page: int = 1,
     count_per_page: int | None = None,
     content: str | None = None,

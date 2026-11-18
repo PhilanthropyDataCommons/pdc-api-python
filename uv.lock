@@ -1087,12 +1087,12 @@ typecheck = [
 
 [package.metadata]
 requires-dist = [
-    { name = "faker", marker = "extra == 'seeding'", specifier = ">=20" },
+    { name = "faker", marker = "extra == 'seeding'", specifier = ">=26" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "python-keycloak", marker = "extra == 'seeding'", specifier = ">=6" },
-    { name = "requests", specifier = ">=2.30" },
+    { name = "requests", specifier = ">=2.34" },
     { name = "responses", marker = "extra == 'testing'", specifier = ">=0.23" },
-    { name = "urllib3", specifier = ">=1.26.5" },
+    { name = "urllib3", specifier = ">=2" },
 ]
 provides-extras = ["testing", "seeding"]
 

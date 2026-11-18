@@ -1,12 +1,11 @@
 import json
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar, Protocol, Self
 
 import requests
 
 from pdc_api_client import errors
-from pdc_api_client._base import PageableBundle
 from pdc_api_client.models import (
     BaseField,
     Changemaker,
@@ -286,6 +285,14 @@ def get_funder(session: APISession, *, short_code: str) -> Funder:
     except errors.PDCNotFoundError as exc:
         raise errors.FunderNotFoundError(short_code) from exc
     return Funder.model_validate(response.json())
+
+
+class PageableBundle(Protocol):
+    pdc_endpoint: ClassVar[str]
+    default_page_size: ClassVar[int]
+
+    @classmethod
+    def model_validate(cls, obj: Any) -> Self: ...
 
 
 def get_bundle_page[BundleT: PageableBundle](

@@ -21,13 +21,13 @@ classifiers = [
 ]
 dependencies = [
   "pydantic>=2.7",
-  "requests>=2.30",
-  "urllib3>=1.26.5",
+  "requests>=2.34",
+  "urllib3>=2",
 ]
 
 [project.optional-dependencies]
 testing = ["responses>=0.23"]
-seeding = ["faker>=20", "python-keycloak>=6"]
+seeding = ["faker>=26", "python-keycloak>=6"]
 
 [project.urls]
 Repository = "https://github.com/PhilanthropyDataCommons/pdc-python-client"

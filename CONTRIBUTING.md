@@ -21,6 +21,8 @@ just check        # lint, type checks, unit tests, and integration tests
 just test --python 3.12 --lowest-direct -- -k token
 ```
 
+`just typecheck` takes `--python` and `--lowest-direct` too. CI type checks Python 3.12 with the lowest versions and Python 3.14 with `uv.lock`.
+
 `uv.lock` pins the versions used for development and CI. Update it with `uv lock --upgrade`. CI also runs both suites weekly with `--upgrade`, and opens an issue when that run fails.
 
 `just pdc up` downloads PDC's [`compose-ci.yml`](https://github.com/PhilanthropyDataCommons/service/blob/main/compose-ci.yml) and Keycloak realm from the service repo's main branch and starts the stack: the PDC API, Keycloak, Postgres, and S3. The integration tests reach Keycloak at `pdc-auth`, so add this line to `/etc/hosts`:

@@ -4,7 +4,7 @@ from typing import ClassVar
 from pydantic import Field
 
 from pdc_api_client import _generated
-from pdc_api_client._base import BaseSchema, PageableBundle
+from pdc_api_client._base import BaseSchema
 from pdc_api_client._generated import (
     ApplicationForm as ChangemakerApplicationForm,
 )
@@ -88,32 +88,32 @@ __all__ = [
 ]
 
 
-class ChangemakerBundle(_generated.ChangemakerBundle, PageableBundle):
+class ChangemakerBundle(_generated.ChangemakerBundle):
     pdc_endpoint: ClassVar[str] = "changemakers"
     default_page_size: ClassVar[int] = 10
 
 
-class FunderBundle(_generated.FunderBundle, PageableBundle):
+class FunderBundle(_generated.FunderBundle):
     pdc_endpoint: ClassVar[str] = "funders"
     default_page_size: ClassVar[int] = 10
 
 
-class FunderCollaborativeMemberBundle(_generated.FunderCollaborativeMemberBundle, PageableBundle):
+class FunderCollaborativeMemberBundle(_generated.FunderCollaborativeMemberBundle):
     pdc_endpoint: ClassVar[str] = "funders/{funder_collaborative_short_code}/members"
     default_page_size: ClassVar[int] = 50
 
 
-class ProposalBundle(_generated.ProposalBundle, PageableBundle):
+class ProposalBundle(_generated.ProposalBundle):
     pdc_endpoint: ClassVar[str] = "proposals"
     default_page_size: ClassVar[int] = 10
 
 
-class InitiativeBundle(_generated.InitiativeBundle, PageableBundle):
+class InitiativeBundle(_generated.InitiativeBundle):
     pdc_endpoint: ClassVar[str] = "initiatives"
     default_page_size: ClassVar[int] = 10
 
 
-class OpportunityBundle(_generated.OpportunityBundle, PageableBundle):
+class OpportunityBundle(_generated.OpportunityBundle):
     pdc_endpoint: ClassVar[str] = "opportunities"
     default_page_size: ClassVar[int] = 10
 
