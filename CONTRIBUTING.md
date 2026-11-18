@@ -6,6 +6,7 @@ We use [uv](https://docs.astral.sh/uv/) and [just](https://just.systems):
 uv sync
 just test         # unit tests, no network
 just typecheck    # mypy, pyrefly, and ty
+just zizmor       # audit the GitHub Actions workflows
 just pdc up       # start PDC's CI stack in Docker
 just integration  # integration tests against that stack
 just check        # lint, type checks, unit tests, and integration tests
