@@ -20,6 +20,11 @@ format:
     uv run ruff format .
     uv run ruff check . --fix
 
+# Audit GitHub Actions workflows with zizmor (passes through args)
+[group('dev')]
+zizmor *args:
+    uvx --exclude-newer "7 days" zizmor .github/ {{args}}
+
 # Run all three type checkers, failing at the end if any failed
 [group('dev')]
 [arg("python", long)]
