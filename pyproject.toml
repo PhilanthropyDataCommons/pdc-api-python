@@ -40,11 +40,17 @@ dev = [
   "datamodel-code-generator[ruff]>=0.87",
   "ruff>=0.17",
   { include-group = "tests" },
+  { include-group = "typecheck" },
 ]
 tests = [
   "pdc-python-client[seeding,testing]",
   "pytest-cov>=7",
   "pytest>=9",
+]
+typecheck = [
+  "mypy>=2.4.1",
+  "pyrefly>=1.4.1",
+  "ty>=0.0.100",
 ]
 
 [build-system]
@@ -73,6 +79,23 @@ pdc_api_client = ["src/pdc_api_client/", "*/site-packages/pdc_api_client/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--cov=pdc_api_client", "--cov-report=term-missing", "--cov-branch"]
+
+[tool.mypy]
+files = ["src", "tests", "integration_tests"]
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[tool.pyrefly]
+project-includes = ["src", "tests", "integration_tests"]
+search-path = ["src", "tests"]
+
+[tool.ty.src]
+include = ["src", "tests", "integration_tests"]
+
+[tool.ty.environment]
+extra-paths = ["tests"]
 
 [tool.ruff]
 line-length = 120

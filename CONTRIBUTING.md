@@ -5,6 +5,7 @@ We use [uv](https://docs.astral.sh/uv/) and [just](https://just.systems):
 ```bash
 uv sync
 just test         # unit tests, no network
+just typecheck    # mypy, pyrefly, and ty
 just pdc up       # start PDC's CI stack in Docker
 just integration  # integration tests against that stack
 just check        # lint, unit tests, and integration tests
