@@ -1,11 +1,12 @@
 import json
 from collections.abc import Generator
 from datetime import datetime
-from typing import ClassVar, Protocol
+from typing import Any
 
 import requests
 
 from pdc_api_client import errors
+from pdc_api_client._base import PageableBundle
 from pdc_api_client.models import (
     BaseField,
     Changemaker,
@@ -32,11 +33,11 @@ def _iterate_pages(
     session: APISession,
     *,
     endpoint: str,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     count_per_page: int = 50,
     max_requests: int | None = None,
-    **kwargs,
-) -> Generator[dict, None, None]:
+    **kwargs: Any,
+) -> Generator[dict[str, Any], None, None]:
     params = params or {}
     page = 1
     n_pages = None
@@ -180,7 +181,7 @@ def get_application_form_by_name(session: APISession, *, name: str) -> Changemak
     raise errors.ApplicationFormNotFoundError(detail=f"No application form named {name!r}")
 
 
-def create_changemaker_proposal(session: APISession, *, data: dict) -> Proposal:
+def create_changemaker_proposal(session: APISession, *, data: dict[str, Any]) -> Proposal:
     response = session.post("proposals", json=data)
     return Proposal.model_validate(response.json())
 
@@ -287,11 +288,6 @@ def get_funder(session: APISession, *, short_code: str) -> Funder:
     return Funder.model_validate(response.json())
 
 
-class PageableBundle(Protocol):
-    pdc_endpoint: ClassVar[str]
-    default_page_size: ClassVar[int]
-
-
 def get_bundle_page[BundleT: PageableBundle](
     session: APISession,
     bundle_type: type[BundleT],
@@ -299,10 +295,10 @@ def get_bundle_page[BundleT: PageableBundle](
     page: int = 1,
     count_per_page: int | None = None,
     content: str | None = None,
-    extra_params: dict | None = None,
-    path_params: dict | None = None,
+    extra_params: dict[str, Any] | None = None,
+    path_params: dict[str, Any] | None = None,
 ) -> BundleT:
-    params: dict = {"_page": page, "_count": count_per_page or bundle_type.default_page_size}
+    params: dict[str, Any] = {"_page": page, "_count": count_per_page or bundle_type.default_page_size}
     if content:
         params["_content"] = content
     if extra_params:

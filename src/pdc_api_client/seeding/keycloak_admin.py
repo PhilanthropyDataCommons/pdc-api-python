@@ -46,6 +46,8 @@ class KeycloakAdmin:
         org_id = self._admin.create_organization(
             {"name": name, "alias": alias, "domains": [{"name": domain, "verified": False}]}
         )
+        if org_id is None:
+            raise LookupError(f"Keycloak did not return an id for new organization {alias!r}")
         return KeycloakOrganization(id=org_id, alias=alias, name=name)
 
     def get_organization(self, *, alias: str) -> KeycloakOrganization | None:
@@ -54,9 +56,10 @@ class KeycloakAdmin:
             return None
         return KeycloakOrganization(id=existing["id"], alias=existing["alias"], name=existing["name"])
 
-    def _find_org_by_alias(self, alias: str) -> dict | None:
+    def _find_org_by_alias(self, alias: str) -> dict[str, Any] | None:
         # Keycloak's org search matches names, not aliases, so filter the full listing.
-        for org in self._admin.get_organizations():
+        organizations: list[dict[str, Any]] = self._admin.get_organizations()
+        for org in organizations:
             if org.get("alias") == alias:
                 return org
         return None
@@ -93,14 +96,16 @@ class KeycloakAdmin:
         )
         return KeycloakUser(id=user_id, username=username, email=email)
 
-    def _find_user_by_username(self, username: str) -> dict | None:
-        for user in self._admin.get_users({"username": username, "exact": True}):
+    def _find_user_by_username(self, username: str) -> dict[str, Any] | None:
+        users: list[dict[str, Any]] = self._admin.get_users({"username": username, "exact": True})
+        for user in users:
             if user.get("username") == username:
                 return user
         return None
 
-    def _find_user_by_email(self, email: str) -> dict | None:
-        for user in self._admin.get_users({"email": email, "exact": True}):
+    def _find_user_by_email(self, email: str) -> dict[str, Any] | None:
+        users: list[dict[str, Any]] = self._admin.get_users({"email": email, "exact": True})
+        for user in users:
             if (user.get("email") or "").lower() == email.lower():
                 return user
         return None
@@ -166,8 +171,9 @@ class KeycloakAdmin:
         target = self._find_client(client_id)
         self._admin.update_client(target["id"], {"directAccessGrantsEnabled": enabled})
 
-    def _find_client(self, client_id: str) -> dict:
-        for client in self._admin.get_clients():
+    def _find_client(self, client_id: str) -> dict[str, Any]:
+        clients: list[dict[str, Any]] = self._admin.get_clients()
+        for client in clients:
             if client.get("clientId") == client_id:
                 return client
         raise LookupError(f"Keycloak client {client_id!r} not found in realm {self.realm!r}")

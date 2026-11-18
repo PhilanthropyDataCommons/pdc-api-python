@@ -1,3 +1,4 @@
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -23,10 +24,10 @@ class APISession:
         *,
         base_url: str,
         token_provider: TokenProvider,
-        timeout: int = 15,
-        request_kwargs: dict | None = None,
+        timeout: float = 15,
+        request_kwargs: dict[str, Any] | None = None,
         keep_alive: bool = True,
-    ):
+    ) -> None:
         # Without the trailing slash, urljoin drops the last path segment of a base like "https://host/api".
         self._base_url = base_url if base_url.endswith("/") else base_url + "/"
         self.auth = token_provider
@@ -48,10 +49,12 @@ class APISession:
         if not keep_alive:
             self._session.headers["Connection"] = "close"
 
-    def _make_api_url(self, path):
+    def _make_api_url(self, path: str) -> str:
         return urljoin(self._base_url, path.lstrip("/"))
 
-    def _make_api_request(self, method, url, data=None, params=None, **kwargs):
+    def _make_api_request(
+        self, method: str, url: str, data: Any = None, params: Any = None, **kwargs: Any
+    ) -> requests.Response:
         if not url.startswith("http"):
             url = self._make_api_url(url)
         timeout = kwargs.pop("timeout", self._timeout)
@@ -73,6 +76,7 @@ class APISession:
                 detail = response.json()
             except ValueError:
                 detail = response.text or f"HTTP {response.status_code}"
+            error_class: type[errors.PDCException]
             if response.status_code >= 500:
                 error_class = errors.PDCServiceError
             else:
@@ -80,17 +84,17 @@ class APISession:
             raise error_class(detail=detail, code=response.status_code)
         return response
 
-    def get(self, path, **kwargs):
+    def get(self, path: str, **kwargs: Any) -> requests.Response:
         return self._make_api_request("GET", path, **kwargs)
 
-    def put(self, path, **kwargs):
+    def put(self, path: str, **kwargs: Any) -> requests.Response:
         return self._make_api_request("PUT", path, **kwargs)
 
-    def post(self, path, **kwargs):
+    def post(self, path: str, **kwargs: Any) -> requests.Response:
         return self._make_api_request("POST", path, **kwargs)
 
-    def patch(self, path, **kwargs):
+    def patch(self, path: str, **kwargs: Any) -> requests.Response:
         return self._make_api_request("PATCH", path, **kwargs)
 
-    def delete(self, path, **kwargs):
+    def delete(self, path: str, **kwargs: Any) -> requests.Response:
         return self._make_api_request("DELETE", path, **kwargs)

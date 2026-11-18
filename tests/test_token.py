@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 import responses
 
@@ -21,7 +23,7 @@ def _provider(**kwargs):
 
 
 def _add_token(*, access_token="abc", expires_in=300, status=200):
-    add_kwargs = {
+    add_kwargs: dict[str, Any] = {
         "method": responses.POST,
         "url": TOKEN_URL,
         "status": status,

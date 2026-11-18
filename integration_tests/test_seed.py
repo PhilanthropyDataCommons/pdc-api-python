@@ -71,6 +71,7 @@ class TestSeedProposalBundle:
     def test_creates_complete_bundle(self, api_session):
         bundle = seed_proposal_bundle(api_session)
         assert isinstance(bundle, SeededProposalBundle)
+        assert bundle.changemaker is not None
         assert bundle.changemaker.id > 0
         assert bundle.funder.short_code
         assert bundle.opportunity.id > 0
@@ -91,6 +92,7 @@ class TestSeedProposalBundle:
 
     def test_bundle_is_retrievable(self, api_session):
         bundle = seed_proposal_bundle(api_session)
+        assert bundle.changemaker is not None
         results = list(
             get_changemaker_proposals(
                 api_session,

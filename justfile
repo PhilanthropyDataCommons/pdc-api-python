@@ -82,9 +82,9 @@ integration python=python lowest_direct="false" upgrade="false" *args:
         --isolated --no-editable --no-dev --group tests --reinstall -- \
         python -I -m pytest -c integration_tests/pytest.ini integration_tests/ {{args}}
 
-# Run lint, unit tests, and integration tests (run `just pdc up` first)
+# Run lint, type checks, unit tests, and integration tests (run `just pdc up` first)
 [group('test')]
-check: lint test integration
+check: lint typecheck test integration
 
 # Download the current PDC OpenAPI spec
 [group('codegen')]

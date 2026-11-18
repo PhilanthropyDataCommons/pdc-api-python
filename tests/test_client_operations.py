@@ -60,7 +60,9 @@ def _post(path, payload):
 
 
 def _sent_json():
-    return json.loads(responses.calls[-1].request.body)
+    body = responses.calls[-1].request.body
+    assert isinstance(body, str | bytes)
+    return json.loads(body)
 
 
 class TestGetProposal:
@@ -114,6 +116,7 @@ class TestGetOrganizationByKeycloakId:
         result = get_organization_by_keycloak_id(session, keycloak_id="kc-uuid")
 
         assert isinstance(result, Organization)
+        assert result.funder is not None
         assert result.funder.short_code == "acme"
         assert result.changemaker is None
 

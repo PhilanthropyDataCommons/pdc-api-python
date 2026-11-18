@@ -23,7 +23,7 @@ class KeycloakClientCredentialsProvider:
         client_secret: str,
         timeout: float,
         expiry_leeway_seconds: float = 30.0,
-    ):
+    ) -> None:
         self._token_url = f"{server_url.rstrip('/')}/realms/{realm}/protocol/openid-connect/token"
         self._client_id = client_id
         self._client_secret = client_secret
@@ -34,13 +34,13 @@ class KeycloakClientCredentialsProvider:
 
     def get_token(self) -> str:
         if self._token is None or time.monotonic() >= self._expires_at - self._leeway:
-            self._request_token()
+            self._token, self._expires_at = self._request_token()
         return self._token
 
     def refresh_if_necessary(self) -> None:
         pass
 
-    def _request_token(self) -> None:
+    def _request_token(self) -> tuple[str, float]:
         try:
             response = requests.post(
                 self._token_url,
@@ -64,8 +64,7 @@ class KeycloakClientCredentialsProvider:
         # A fronting proxy can return 200 with a body that isn't a token.
         try:
             payload = response.json()
-            self._token = payload["access_token"]
-            self._expires_at = time.monotonic() + payload["expires_in"]
+            return payload["access_token"], time.monotonic() + payload["expires_in"]
         except (ValueError, KeyError) as exc:
             raise TokenRequestError(
                 detail="Malformed token response from auth server", code=response.status_code

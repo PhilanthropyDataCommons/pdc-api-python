@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 from faker import Faker
 
@@ -39,7 +40,7 @@ fake = Faker()
 class SeededApplicationForm:
     id: int
     opportunity_id: int
-    fields: list[dict] = field(default_factory=list)
+    fields: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -158,7 +159,7 @@ def seed_funder(
 ) -> Funder:
     short_code = short_code or _token("funder")
     name = name or make_funder_name(is_collaborative=is_collaborative)
-    body: dict = {"name": name, "isCollaborative": is_collaborative}
+    body: dict[str, Any] = {"name": name, "isCollaborative": is_collaborative}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
     response = session.put(f"/funders/{short_code}", json=body)
@@ -170,11 +171,12 @@ def seed_funder_collaborative_member(
     *,
     collaborative: Funder,
     member: Funder,
-) -> dict:
+) -> dict[str, Any]:
     response = session.post(
         f"/funders/{collaborative.short_code}/members/{member.short_code}",
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 @dataclass
@@ -228,7 +230,7 @@ def seed_changemaker(
             return existing
     else:
         tax_id = f"XX-{uuid.uuid4().hex[:7]}"
-    body: dict = {"name": name, "taxId": tax_id}
+    body: dict[str, Any] = {"name": name, "taxId": tax_id}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
     response = session.post("/changemakers", json=body)
@@ -274,7 +276,7 @@ def seed_data_provider(
 ) -> DataProvider:
     short_code = short_code or _token("dp")
     name = name or f"{fake.company()} Data"
-    body: dict = {"name": name}
+    body: dict[str, Any] = {"name": name}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
     response = session.put(f"/dataProviders/{short_code}", json=body)
@@ -349,15 +351,16 @@ def seed_fiscal_sponsorship(
     sponsee: ShallowChangemaker,
     sponsor: ShallowChangemaker,
     not_after: str | None = None,
-) -> dict:
-    body: dict = {}
+) -> dict[str, Any]:
+    body: dict[str, Any] = {}
     if not_after is not None:
         body["notAfter"] = not_after
     response = session.put(
         f"/changemakers/{sponsee.id}/fiscalSponsors/{sponsor.id}",
         json=body,
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 def seed_funder_collaborative_invitation(
@@ -365,13 +368,14 @@ def seed_funder_collaborative_invitation(
     *,
     collaborative: Funder,
     invited: Funder,
-) -> dict:
+) -> dict[str, Any]:
     response = session.post(
         f"/funders/{collaborative.short_code}/invitations/sent/{invited.short_code}",
         # PDC rejects a missing body even though no fields are required.
         json={},
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 def respond_to_funder_collaborative_invitation(
@@ -380,12 +384,13 @@ def respond_to_funder_collaborative_invitation(
     collaborative: Funder,
     invited: Funder,
     status: str,
-) -> dict:
+) -> dict[str, Any]:
     response = session.patch(
         f"/funders/{invited.short_code}/invitations/received/{collaborative.short_code}",
         json={"invitationStatus": status},
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 def seed_source(
@@ -399,7 +404,7 @@ def seed_source(
     label = label or f"{fake.catch_phrase()} Source"
     if changemaker_id is not None:
         return create_changemaker_source(session, changemaker_id=changemaker_id, label=label)
-    payload: dict = {"label": label}
+    payload: dict[str, Any] = {"label": label}
     if data_provider_short_code:
         payload["dataProviderShortCode"] = data_provider_short_code
     elif funder_short_code:
@@ -494,7 +499,7 @@ def seed_proposal_version(
     proposal: Proposal,
     source: Source,
     application_form: SeededApplicationForm,
-    field_values: list[dict] | None = None,
+    field_values: list[dict[str, Any]] | None = None,
 ) -> ProposalVersion:
     response = session.post(
         "/proposalVersions",
@@ -513,7 +518,7 @@ def link_changemaker_to_proposal(
     *,
     changemaker: ShallowChangemaker,
     proposal: Proposal,
-) -> dict:
+) -> dict[str, Any]:
     response = session.post(
         "/changemakerProposals",
         json={
@@ -521,7 +526,8 @@ def link_changemaker_to_proposal(
             "proposalId": proposal.id,
         },
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 _CHANGEMAKER_PROFILE_FIELDS: tuple[tuple[str, str, str], ...] = (
