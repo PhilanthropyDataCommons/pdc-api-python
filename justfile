@@ -14,6 +14,12 @@ lint:
     uv run ruff check .
     uv run ruff format . --check
 
+# Format and autofix lint issues
+[group('dev')]
+format:
+    uv run ruff format .
+    uv run ruff check . --fix
+
 # Run all three type checkers, failing at the end if any failed
 [group('dev')]
 [arg("python", long)]
@@ -49,12 +55,6 @@ typecheck-pyrefly python=python *args:
 typecheck-ty python=python *args:
     uv run --python={{python}} --isolated --no-dev --group tests --group typecheck -- \
         ty check --python-version={{python}} {{args}}
-
-# Format and autofix lint issues
-[group('dev')]
-format:
-    uv run ruff format .
-    uv run ruff check . --fix
 
 # Run the unit tests against the installed package
 [group('test')]
