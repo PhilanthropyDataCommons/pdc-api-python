@@ -27,7 +27,7 @@ class KeycloakAdmin:
         realm: str,
         admin_username: str,
         admin_password: str,
-    ):
+    ) -> None:
         # The bootstrap admin lives in the master realm and can administer any realm.
         self._admin = _KeycloakAdminClient(
             server_url=keycloak_url.rstrip("/") + "/",
@@ -40,9 +40,9 @@ class KeycloakAdmin:
         self.realm = realm
 
     def ensure_organization(self, *, name: str, alias: str, domain: str) -> KeycloakOrganization:
-        existing = self._find_org_by_alias(alias)
+        existing = self.get_organization(alias=alias)
         if existing is not None:
-            return KeycloakOrganization(id=existing["id"], alias=existing["alias"], name=existing["name"])
+            return existing
         org_id = self._admin.create_organization(
             {"name": name, "alias": alias, "domains": [{"name": domain, "verified": False}]}
         )
@@ -132,7 +132,7 @@ class KeycloakAdmin:
             role = self._admin.get_realm_role(role_name)
         except KeycloakGetError as exc:
             if exc.response_code == 404:
-                raise LookupError(f"Realm role {role_name!r} not found in realm {self.realm!r}") from exc
+                raise LookupError(f"Keycloak realm role {role_name!r} not found in realm {self.realm!r}") from exc
             raise
         self._admin.assign_realm_roles(user_id, [{"id": role["id"], "name": role["name"]}])
         return True

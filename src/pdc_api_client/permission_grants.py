@@ -225,9 +225,9 @@ def _validate_grant(payload: dict[str, Any]) -> PermissionGrant:
     return _PERMISSION_GRANT_ADAPTER.validate_python(payload)
 
 
-def _grant_to_payload(spec: PermissionGrant | DefaultPermissionGrant) -> dict[str, Any]:
+def _grant_to_payload(grant: PermissionGrant | DefaultPermissionGrant) -> dict[str, Any]:
     # PDC rejects server-managed fields and the unset grantee key in write bodies.
-    return spec.model_dump(mode="json", by_alias=True, exclude={"id", "created_by", "created_at"}, exclude_none=True)
+    return grant.model_dump(mode="json", by_alias=True, exclude={"id", "created_by", "created_at"}, exclude_none=True)
 
 
 def list_permission_grants(
@@ -235,19 +235,19 @@ def list_permission_grants(
     *,
     page: int = 1,
     count_per_page: int | None = None,
-    changemaker: int | None = None,
-    funder: str | None = None,
-    proposal: int | None = None,
+    changemaker_id: int | None = None,
+    funder_short_code: str | None = None,
+    proposal_id: int | None = None,
     grantee_type: PermissionGrantGranteeType | None = None,
     verb: PermissionGrantVerb | None = None,
 ) -> PermissionGrantBundle:
     extra_params: dict[str, Any] = {}
-    if changemaker is not None:
-        extra_params["changemaker"] = changemaker
-    if funder is not None:
-        extra_params["funder"] = funder
-    if proposal is not None:
-        extra_params["proposal"] = proposal
+    if changemaker_id is not None:
+        extra_params["changemaker"] = changemaker_id
+    if funder_short_code is not None:
+        extra_params["funder"] = funder_short_code
+    if proposal_id is not None:
+        extra_params["proposal"] = proposal_id
     if grantee_type is not None:
         extra_params["granteeType"] = grantee_type.value
     if verb is not None:
@@ -266,13 +266,13 @@ def get_permission_grant(session: APISession, *, grant_id: int) -> PermissionGra
     return _validate_grant(response.json())
 
 
-def create_permission_grant(session: APISession, *, spec: PermissionGrant) -> PermissionGrant:
-    response = session.post(_ENDPOINT, json=_grant_to_payload(spec))
+def create_permission_grant(session: APISession, *, grant: PermissionGrant) -> PermissionGrant:
+    response = session.post(_ENDPOINT, json=_grant_to_payload(grant))
     return _validate_grant(response.json())
 
 
-def update_permission_grant(session: APISession, *, grant_id: int, spec: PermissionGrant) -> PermissionGrant:
-    response = session.put(f"{_ENDPOINT}/{grant_id}", json=_grant_to_payload(spec))
+def update_permission_grant(session: APISession, *, grant_id: int, grant: PermissionGrant) -> PermissionGrant:
+    response = session.put(f"{_ENDPOINT}/{grant_id}", json=_grant_to_payload(grant))
     return _validate_grant(response.json())
 
 
@@ -291,15 +291,15 @@ def get_default_permission_grant(session: APISession, *, grant_id: int) -> Defau
     return DefaultPermissionGrant.model_validate(response.json())
 
 
-def create_default_permission_grant(session: APISession, *, spec: DefaultPermissionGrant) -> DefaultPermissionGrant:
-    response = session.post(_DEFAULT_ENDPOINT, json=_grant_to_payload(spec))
+def create_default_permission_grant(session: APISession, *, grant: DefaultPermissionGrant) -> DefaultPermissionGrant:
+    response = session.post(_DEFAULT_ENDPOINT, json=_grant_to_payload(grant))
     return DefaultPermissionGrant.model_validate(response.json())
 
 
 def update_default_permission_grant(
-    session: APISession, *, grant_id: int, spec: DefaultPermissionGrant
+    session: APISession, *, grant_id: int, grant: DefaultPermissionGrant
 ) -> DefaultPermissionGrant:
-    response = session.put(f"{_DEFAULT_ENDPOINT}/{grant_id}", json=_grant_to_payload(spec))
+    response = session.put(f"{_DEFAULT_ENDPOINT}/{grant_id}", json=_grant_to_payload(grant))
     return DefaultPermissionGrant.model_validate(response.json())
 
 

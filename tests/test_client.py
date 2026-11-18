@@ -3,7 +3,7 @@ import pytest
 from pdc_api_client import errors
 from pdc_api_client.client import (
     _iterate_pages,
-    get_basefields,
+    get_base_fields,
     get_changemaker_field_value_batch,
     get_changemaker_field_values,
     get_changemaker_proposals,
@@ -36,13 +36,13 @@ from pdc_api_client.testing import (
 )
 
 
-class TestGetBasefields:
+class TestGetBaseFields:
     # PDC sorts /baseFields only by created_at, which ties, so paging can repeat or skip fields.
     def test_fetches_every_field_in_one_page(self, session, add_json_response):
         payload = {"entries": [_basefield(f"f{i}") for i in range(75)], "total": 75}
         add_json_response(path="/baseFields", payload=payload, query_params={"_page": 1, "_count": 10_000})
 
-        result = get_basefields(session)
+        result = get_base_fields(session)
 
         assert [b.short_code for b in result] == [f"f{i}" for i in range(75)]
 
@@ -50,7 +50,7 @@ class TestGetBasefields:
         payload = {"entries": [_basefield("d", data_type="date"), _basefield("dt", data_type="date_time")], "total": 2}
         add_json_response(path="/baseFields", payload=payload, query_params={"_page": 1, "_count": 10_000})
 
-        result = get_basefields(session)
+        result = get_base_fields(session)
 
         assert [b.data_type for b in result] == [BaseFieldDataType.DATE, BaseFieldDataType.DATE_TIME]
 
@@ -193,8 +193,13 @@ class TestGetChangemakerFieldValueBatch:
     def test_raises_batch_not_found_on_404(self, session, add_json_response):
         add_json_response(path="changemakerFieldValueBatches/999", payload={"detail": "not found"}, status=404)
 
-        with pytest.raises(errors.ChangemakerFieldValueBatchNotFoundError):
+        with pytest.raises(
+            errors.ChangemakerFieldValueBatchNotFoundError, match="No changemaker field value batch with id 999"
+        ) as exc_info:
             get_changemaker_field_value_batch(session, batch_id=999)
+
+        assert isinstance(exc_info.value, errors.PDCNotFoundError)
+        assert exc_info.value.code == 404
 
 
 class TestIteratePages:

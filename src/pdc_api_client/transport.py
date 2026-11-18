@@ -35,7 +35,7 @@ class APISession:
         self._request_kwargs = request_kwargs or {}
         self._session = requests.Session()
         self._session.headers["Accept"] = "application/json"
-        # Render's edge sometimes answers a healthy upstream with a one-off 502; only idempotent reads retry.
+        # A proxy in front of PDC can answer a healthy upstream with a one-off 502; only idempotent reads retry.
         retries = Retry(
             total=3,
             backoff_factor=0.5,

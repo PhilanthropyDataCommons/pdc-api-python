@@ -14,6 +14,7 @@ from pdc_api_client.client import (
     get_bundle_page,
     get_changemaker_field_values,
     get_organization_by_keycloak_id,
+    link_changemaker_to_proposal,
 )
 from pdc_api_client.errors import PDCNotFoundError
 from pdc_api_client.models import (
@@ -26,6 +27,7 @@ from pdc_api_client.models import (
     Initiative,
     InitiativeFieldValue,
     Opportunity,
+    Organization,
     Proposal,
     ProposalVersion,
     ShallowChangemaker,
@@ -121,7 +123,7 @@ def seed_base_field(
     short_code = short_code or _token("field")
     label = label or f"Test Field {short_code}"
     response = session.put(
-        f"/baseFields/{short_code}",
+        f"baseFields/{short_code}",
         json={
             "label": label,
             "description": f"Integration test base field: {short_code}",
@@ -168,7 +170,7 @@ def seed_funder(
     body: dict[str, Any] = {"name": name, "isCollaborative": is_collaborative}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
-    response = session.put(f"/funders/{short_code}", json=body)
+    response = session.put(f"funders/{short_code}", json=body)
     return Funder.model_validate(response.json())
 
 
@@ -179,7 +181,7 @@ def seed_funder_collaborative_member(
     member: Funder,
 ) -> dict[str, Any]:
     response = session.post(
-        f"/funders/{collaborative.short_code}/members/{member.short_code}",
+        f"funders/{collaborative.short_code}/members/{member.short_code}",
     )
     return _json_object(response)
 
@@ -238,7 +240,7 @@ def seed_changemaker(
     body: dict[str, Any] = {"name": name, "taxId": tax_id}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
-    response = session.post("/changemakers", json=body)
+    response = session.post("changemakers", json=body)
     return ShallowChangemaker.model_validate(response.json())
 
 
@@ -266,7 +268,7 @@ def seed_opportunity(
         funder = seed_funder(session)
     title = title or f"{fake.catch_phrase()} Grant"
     response = session.post(
-        "/opportunities",
+        "opportunities",
         json={"title": title, "funderShortCode": funder.short_code},
     )
     return Opportunity.model_validate(response.json())
@@ -284,69 +286,67 @@ def seed_data_provider(
     body: dict[str, Any] = {"name": name}
     if keycloak_organization_id is not None:
         body["keycloakOrganizationId"] = keycloak_organization_id
-    response = session.put(f"/dataProviders/{short_code}", json=body)
+    response = session.put(f"dataProviders/{short_code}", json=body)
     return DataProvider.model_validate(response.json())
 
 
-def _kc_alias_slug(kc_org: KeycloakOrganization) -> str:
+def _keycloak_alias_slug(keycloak_org: KeycloakOrganization) -> str:
     # Keycloak aliases are kebab-case; PDC short codes are snake_case.
-    return kc_org.alias.replace("-", "_")
+    return keycloak_org.alias.replace("-", "_")
 
 
-def ensure_funder_for_kc_org(
+def _find_organization(session: APISession, *, keycloak_org: KeycloakOrganization) -> Organization | None:
+    try:
+        return get_organization_by_keycloak_id(session, keycloak_id=keycloak_org.id)
+    except PDCNotFoundError:
+        return None
+
+
+def ensure_funder_for_keycloak_org(
     session: APISession,
     *,
-    kc_org: KeycloakOrganization,
+    keycloak_org: KeycloakOrganization,
     name: str,
     is_collaborative: bool = False,
 ) -> Funder:
-    try:
-        org = get_organization_by_keycloak_id(session, keycloak_id=kc_org.id)
-        if org.funder is not None:
-            return org.funder
-    except PDCNotFoundError:
-        pass
+    org = _find_organization(session, keycloak_org=keycloak_org)
+    if org is not None and org.funder is not None:
+        return org.funder
     return seed_funder(
         session,
-        short_code=f"{_kc_alias_slug(kc_org)}_funder",
+        short_code=f"{_keycloak_alias_slug(keycloak_org)}_funder",
         name=name,
         is_collaborative=is_collaborative,
-        keycloak_organization_id=kc_org.id,
+        keycloak_organization_id=keycloak_org.id,
     )
 
 
-def ensure_changemaker_for_kc_org(
+def ensure_changemaker_for_keycloak_org(
     session: APISession,
     *,
-    kc_org: KeycloakOrganization,
+    keycloak_org: KeycloakOrganization,
     name: str,
 ) -> ShallowChangemaker:
-    try:
-        org = get_organization_by_keycloak_id(session, keycloak_id=kc_org.id)
-        if org.changemaker is not None:
-            return org.changemaker
-    except PDCNotFoundError:
-        pass
-    return seed_changemaker(session, name=name, keycloak_organization_id=kc_org.id)
+    org = _find_organization(session, keycloak_org=keycloak_org)
+    if org is not None and org.changemaker is not None:
+        return org.changemaker
+    return seed_changemaker(session, name=name, keycloak_organization_id=keycloak_org.id)
 
 
-def ensure_data_provider_for_kc_org(
+def ensure_data_provider_for_keycloak_org(
     session: APISession,
     *,
-    kc_org: KeycloakOrganization,
+    keycloak_org: KeycloakOrganization,
     name: str,
 ) -> DataProvider:
-    try:
-        org = get_organization_by_keycloak_id(session, keycloak_id=kc_org.id)
-        if org.data_provider is not None:
-            return org.data_provider
-    except PDCNotFoundError:
-        pass
+    org = _find_organization(session, keycloak_org=keycloak_org)
+    if org is not None and org.data_provider is not None:
+        return org.data_provider
     return seed_data_provider(
         session,
-        short_code=f"{_kc_alias_slug(kc_org)}_data_provider",
+        short_code=f"{_keycloak_alias_slug(keycloak_org)}_data_provider",
         name=name,
-        keycloak_organization_id=kc_org.id,
+        keycloak_organization_id=keycloak_org.id,
     )
 
 
@@ -361,7 +361,7 @@ def seed_fiscal_sponsorship(
     if not_after is not None:
         body["notAfter"] = not_after
     response = session.put(
-        f"/changemakers/{sponsee.id}/fiscalSponsors/{sponsor.id}",
+        f"changemakers/{sponsee.id}/fiscalSponsors/{sponsor.id}",
         json=body,
     )
     return _json_object(response)
@@ -374,7 +374,7 @@ def seed_funder_collaborative_invitation(
     invited: Funder,
 ) -> dict[str, Any]:
     response = session.post(
-        f"/funders/{collaborative.short_code}/invitations/sent/{invited.short_code}",
+        f"funders/{collaborative.short_code}/invitations/sent/{invited.short_code}",
         # PDC rejects a missing body even though no fields are required.
         json={},
     )
@@ -389,7 +389,7 @@ def respond_to_funder_collaborative_invitation(
     status: str,
 ) -> dict[str, Any]:
     response = session.patch(
-        f"/funders/{invited.short_code}/invitations/received/{collaborative.short_code}",
+        f"funders/{invited.short_code}/invitations/received/{collaborative.short_code}",
         json={"invitationStatus": status},
     )
     return _json_object(response)
@@ -414,7 +414,7 @@ def seed_source(
     else:
         funder = seed_funder(session)
         payload["funderShortCode"] = funder.short_code
-    response = session.post("/sources", json=payload)
+    response = session.post("sources", json=payload)
     return Source.model_validate(response.json())
 
 
@@ -461,7 +461,7 @@ def seed_application_form(
             for i, sc in enumerate(base_field_short_codes)
         ]
     response = session.post(
-        "/applicationForms",
+        "applicationForms",
         json={
             "opportunityId": opportunity.id,
             "name": name or f"Test Application Form {uuid.uuid4().hex[:8]}",
@@ -486,7 +486,7 @@ def seed_proposal(
         opportunity = seed_opportunity(session)
     external_id = external_id or _token("proposal")
     response = session.post(
-        "/proposals",
+        "proposals",
         json={
             "opportunityId": opportunity.id,
             "externalId": external_id,
@@ -504,7 +504,7 @@ def seed_proposal_version(
     field_values: list[dict[str, Any]] | None = None,
 ) -> ProposalVersion:
     response = session.post(
-        "/proposalVersions",
+        "proposalVersions",
         json={
             "proposalId": proposal.id,
             "sourceId": source.id,
@@ -513,22 +513,6 @@ def seed_proposal_version(
         },
     )
     return ProposalVersion.model_validate(response.json())
-
-
-def link_changemaker_to_proposal(
-    session: APISession,
-    *,
-    changemaker: ShallowChangemaker,
-    proposal: Proposal,
-) -> dict[str, Any]:
-    response = session.post(
-        "/changemakerProposals",
-        json={
-            "changemakerId": changemaker.id,
-            "proposalId": proposal.id,
-        },
-    )
-    return _json_object(response)
 
 
 _CHANGEMAKER_PROFILE_FIELDS: tuple[tuple[str, str, str], ...] = (
@@ -601,6 +585,47 @@ def seed_changemaker_profile_fields(
     return SeededChangemakerProfile(changemaker=changemaker, source=source, batch=batch, field_values=field_values)
 
 
+def _seed_linked_proposal(
+    session: APISession,
+    *,
+    changemaker: ShallowChangemaker,
+    funder: Funder,
+    opportunity: Opportunity,
+    source: Source,
+    application_form: SeededApplicationForm,
+    field_seeds: list[tuple[str, str, str]],
+) -> SeededProposalBundle:
+    form_field_id_by_short_code = {
+        form_field["baseFieldShortCode"]: form_field["id"] for form_field in application_form.fields
+    }
+    proposal = seed_proposal(session, opportunity=opportunity)
+    proposal_version = seed_proposal_version(
+        session,
+        proposal=proposal,
+        source=source,
+        application_form=application_form,
+        field_values=[
+            {
+                "applicationFormFieldId": form_field_id_by_short_code[short_code],
+                "position": position,
+                "value": value,
+                "goodAsOf": None,
+            }
+            for position, (short_code, _, value) in enumerate(field_seeds, start=1)
+        ],
+    )
+    link_changemaker_to_proposal(session, changemaker_id=changemaker.id, proposal_id=proposal.id)
+    return SeededProposalBundle(
+        changemaker=changemaker,
+        funder=funder,
+        opportunity=opportunity,
+        source=source,
+        application_form=application_form,
+        proposal=proposal,
+        proposal_version=proposal_version,
+    )
+
+
 def seed_proposal_bundle(
     session: APISession,
     *,
@@ -618,53 +643,17 @@ def seed_proposal_bundle(
         for short_code, label, _ in field_seeds
     ]
     funder = seed_funder(session)
-    changemaker = seed_changemaker(session, name=changemaker_name)
     opportunity = seed_opportunity(session, funder=funder)
-
-    source = seed_source(
+    return _seed_linked_proposal(
         session,
-        funder_short_code=funder.short_code,
-    )
-    application_form = seed_application_form(
-        session,
-        opportunity=opportunity,
-        base_field_short_codes=[bf.short_code for bf in seeded_fields],
-    )
-    form_field_id_by_short_code = {
-        form_field["baseFieldShortCode"]: form_field["id"] for form_field in application_form.fields
-    }
-
-    proposal = seed_proposal(session, opportunity=opportunity)
-    proposal_version = seed_proposal_version(
-        session,
-        proposal=proposal,
-        source=source,
-        application_form=application_form,
-        field_values=[
-            {
-                "applicationFormFieldId": form_field_id_by_short_code[short_code],
-                "position": position,
-                "value": value,
-                "goodAsOf": None,
-            }
-            for position, (short_code, _, value) in enumerate(field_seeds, start=1)
-        ],
-    )
-
-    link_changemaker_to_proposal(
-        session,
-        changemaker=changemaker,
-        proposal=proposal,
-    )
-
-    return SeededProposalBundle(
-        changemaker=changemaker,
+        changemaker=seed_changemaker(session, name=changemaker_name),
         funder=funder,
         opportunity=opportunity,
-        source=source,
-        application_form=application_form,
-        proposal=proposal,
-        proposal_version=proposal_version,
+        source=seed_source(session, funder_short_code=funder.short_code),
+        application_form=seed_application_form(
+            session, opportunity=opportunity, base_field_short_codes=[bf.short_code for bf in seeded_fields]
+        ),
+        field_seeds=field_seeds,
     )
 
 
@@ -678,55 +667,29 @@ def seed_changemaker_with_proposals(
 ) -> SeededChangemakerWithProposals:
     if changemaker is None:
         changemaker = seed_changemaker(session, name=changemaker_name)
-    field_labels = make_proposal_field_seeds()
     seeded_fields = [
-        seed_base_field(session, short_code=short_code, label=label) for short_code, label, _ in field_labels
+        seed_base_field(session, short_code=short_code, label=label)
+        for short_code, label, _ in make_proposal_field_seeds()
     ]
     if funder is None:
         funder = seed_funder(session)
     opportunity = seed_opportunity(session, funder=funder)
     source = seed_source(session, funder_short_code=funder.short_code)
     application_form = seed_application_form(
-        session,
-        opportunity=opportunity,
-        base_field_short_codes=[bf.short_code for bf in seeded_fields],
+        session, opportunity=opportunity, base_field_short_codes=[bf.short_code for bf in seeded_fields]
     )
-    form_field_id_by_short_code = {
-        form_field["baseFieldShortCode"]: form_field["id"] for form_field in application_form.fields
-    }
-
-    bundles: list[SeededProposalBundle] = []
-    for i in range(proposal_count):
-        field_seeds = make_proposal_field_seeds(include_numbers=i % 2 == 0)
-        proposal = seed_proposal(session, opportunity=opportunity)
-        proposal_version = seed_proposal_version(
+    bundles = [
+        _seed_linked_proposal(
             session,
-            proposal=proposal,
+            changemaker=changemaker,
+            funder=funder,
+            opportunity=opportunity,
             source=source,
             application_form=application_form,
-            field_values=[
-                {
-                    "applicationFormFieldId": form_field_id_by_short_code[short_code],
-                    "position": position,
-                    "value": value,
-                    "goodAsOf": None,
-                }
-                for position, (short_code, _, value) in enumerate(field_seeds, start=1)
-            ],
+            field_seeds=make_proposal_field_seeds(include_numbers=i % 2 == 0),
         )
-        link_changemaker_to_proposal(session, changemaker=changemaker, proposal=proposal)
-        bundles.append(
-            SeededProposalBundle(
-                changemaker=changemaker,
-                funder=funder,
-                opportunity=opportunity,
-                source=source,
-                application_form=application_form,
-                proposal=proposal,
-                proposal_version=proposal_version,
-            )
-        )
-
+        for i in range(proposal_count)
+    ]
     return SeededChangemakerWithProposals(changemaker=changemaker, bundles=bundles)
 
 

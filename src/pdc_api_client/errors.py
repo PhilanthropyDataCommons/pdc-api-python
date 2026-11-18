@@ -41,19 +41,19 @@ class TokenRequestError(PDCException):
     pass
 
 
-class ProposalNotFoundError(Exception):
+class ProposalNotFoundError(PDCNotFoundError):
     pass
 
 
-class ChangemakerNotFoundError(Exception):
+class ChangemakerNotFoundError(PDCNotFoundError):
     pass
 
 
-class ChangemakerFieldValueBatchNotFoundError(Exception):
+class ChangemakerFieldValueBatchNotFoundError(PDCNotFoundError):
     pass
 
 
-class FunderNotFoundError(Exception):
+class FunderNotFoundError(PDCNotFoundError):
     pass
 
 

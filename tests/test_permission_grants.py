@@ -126,9 +126,9 @@ class TestListFilters:
 
         result = list_permission_grants(
             session,
-            changemaker=9,
-            funder="acme-foundation",
-            proposal=7,
+            changemaker_id=9,
+            funder_short_code="acme-foundation",
+            proposal_id=7,
             grantee_type=PermissionGrantGranteeType.USER_GROUP,
             verb=PermissionGrantVerb.MANAGE,
         )

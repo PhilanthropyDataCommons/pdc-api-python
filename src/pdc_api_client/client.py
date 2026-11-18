@@ -56,28 +56,28 @@ def _iterate_pages(
             break
 
 
-def get_basefields(session: APISession) -> list[BaseField]:
+def get_base_fields(session: APISession) -> list[BaseField]:
     return [
         BaseField.model_validate(entry)
-        for payload in _iterate_pages(session, endpoint="/baseFields", count_per_page=10_000)
+        for payload in _iterate_pages(session, endpoint="baseFields", count_per_page=10_000)
         for entry in payload["entries"]
     ]
 
 
 def get_changemakers(session: APISession) -> Generator[Changemaker, None, None]:
-    for payload in _iterate_pages(session, endpoint="/changemakers"):
+    for payload in _iterate_pages(session, endpoint="changemakers"):
         for entry in payload["entries"]:
             yield Changemaker.model_validate(entry)
 
 
 def get_funders(session: APISession) -> Generator[Funder, None, None]:
-    for payload in _iterate_pages(session, endpoint="/funders"):
+    for payload in _iterate_pages(session, endpoint="funders"):
         for entry in payload["entries"]:
             yield Funder.model_validate(entry)
 
 
 def get_data_providers(session: APISession) -> Generator[DataProvider, None, None]:
-    for payload in _iterate_pages(session, endpoint="/dataProviders"):
+    for payload in _iterate_pages(session, endpoint="dataProviders"):
         for entry in payload["entries"]:
             yield DataProvider.model_validate(entry)
 
@@ -89,7 +89,7 @@ def get_changemaker_proposals(
     proposal_id: int | None = None,
     count_per_page: int | None = None,
 ) -> Generator[ChangemakerProposal, None, None]:
-    endpoint = "/changemakerProposals"
+    endpoint = "changemakerProposals"
     query_params = {}
     if changemaker_id is not None:
         query_params["changemaker"] = changemaker_id
@@ -103,14 +103,14 @@ def get_changemaker_proposals(
 
 
 def get_proposals(session: APISession, *, count_per_page: int = 50) -> Generator[Proposal, None, None]:
-    for payload in _iterate_pages(session, endpoint="/proposals", count_per_page=count_per_page):
+    for payload in _iterate_pages(session, endpoint="proposals", count_per_page=count_per_page):
         for entry in payload["entries"]:
             yield Proposal.model_validate(entry)
 
 
 def get_initiatives(session: APISession, *, changemaker_id: int | None = None) -> Generator[Initiative, None, None]:
     params = {} if changemaker_id is None else {"changemaker": changemaker_id}
-    for payload in _iterate_pages(session, endpoint="/initiatives", params=params):
+    for payload in _iterate_pages(session, endpoint="initiatives", params=params):
         for entry in payload["entries"]:
             yield Initiative.model_validate(entry)
 
@@ -123,7 +123,7 @@ def get_initiative(session: APISession, *, initiative_id: int) -> Initiative:
 def get_initiative_field_values(
     session: APISession, *, initiative_id: int
 ) -> Generator[InitiativeFieldValue, None, None]:
-    for payload in _iterate_pages(session, endpoint=f"/initiatives/{initiative_id}/fieldValues"):
+    for payload in _iterate_pages(session, endpoint=f"initiatives/{initiative_id}/fieldValues"):
         for entry in payload["entries"]:
             yield InitiativeFieldValue.model_validate(entry)
 
@@ -167,27 +167,25 @@ def get_organization_by_keycloak_id(session: APISession, *, keycloak_id: str) ->
     return Organization.model_validate(response.json())
 
 
-def get_application_form(session: APISession, *, form_id: int) -> ChangemakerApplicationForm:
-    response = session.get(f"applicationForms/{form_id}")
+def get_application_form(session: APISession, *, application_form_id: int) -> ChangemakerApplicationForm:
+    response = session.get(f"applicationForms/{application_form_id}")
     return ChangemakerApplicationForm.model_validate(response.json())
 
 
 def get_application_form_by_name(session: APISession, *, name: str) -> ChangemakerApplicationForm:
-    for payload in _iterate_pages(session, endpoint="/applicationForms"):
+    for payload in _iterate_pages(session, endpoint="applicationForms"):
         for entry in payload["entries"]:
             if entry["name"] == name:
                 return ChangemakerApplicationForm.model_validate(entry)
     raise errors.ApplicationFormNotFoundError(detail=f"No application form named {name!r}")
 
 
-def create_changemaker_proposal(session: APISession, *, data: dict[str, Any]) -> Proposal:
+def create_proposal(session: APISession, *, data: dict[str, Any]) -> Proposal:
     response = session.post("proposals", json=data)
     return Proposal.model_validate(response.json())
 
 
-def create_changemaker_proposal_version(
-    session: APISession, *, proposal_version: NewProposalVersion
-) -> ProposalVersion:
+def create_proposal_version(session: APISession, *, proposal_version: NewProposalVersion) -> ProposalVersion:
     response = session.post("proposalVersions", json=json.loads(proposal_version.model_dump_json(by_alias=True)))
     return ProposalVersion.model_validate(response.json())
 
@@ -202,14 +200,14 @@ def get_changemaker_proposal(session: APISession, *, proposal_id: int) -> Change
     try:
         return ChangemakerProposal.model_validate(response.json()["entries"][0])
     except (KeyError, IndexError):
-        raise errors.ProposalNotFoundError
+        raise errors.ProposalNotFoundError(detail=f"No changemaker linked to proposal {proposal_id}") from None
 
 
 def get_proposal(session: APISession, *, proposal_id: int) -> Proposal:
     try:
         response = session.get(f"proposals/{proposal_id}")
-    except errors.PDCNotFoundError:
-        raise errors.ProposalNotFoundError
+    except errors.PDCNotFoundError as exc:
+        raise errors.ProposalNotFoundError(detail=f"No proposal with id {proposal_id}", code=exc.code) from exc
     return Proposal.model_validate(response.json())
 
 
@@ -217,8 +215,8 @@ def get_changemaker(session: APISession, *, changemaker_id: int) -> Changemaker:
     try:
         response = session.get(f"changemakers/{changemaker_id}")
         return Changemaker.model_validate(response.json())
-    except errors.PDCNotFoundError:
-        raise errors.ChangemakerNotFoundError
+    except errors.PDCNotFoundError as exc:
+        raise errors.ChangemakerNotFoundError(detail=f"No changemaker with id {changemaker_id}", code=exc.code) from exc
 
 
 def get_changemaker_field_values(
@@ -232,7 +230,7 @@ def get_changemaker_field_values(
         params["changemaker"] = changemaker_id
     if batch_id is not None:
         params["changemakerFieldValueBatch"] = batch_id
-    for payload in _iterate_pages(session, endpoint="/changemakerFieldValues", params=params):
+    for payload in _iterate_pages(session, endpoint="changemakerFieldValues", params=params):
         for entry in payload["entries"]:
             yield ChangemakerFieldValue.model_validate(entry)
 
@@ -240,8 +238,10 @@ def get_changemaker_field_values(
 def get_changemaker_field_value_batch(session: APISession, *, batch_id: int) -> ChangemakerFieldValueBatch:
     try:
         response = session.get(f"changemakerFieldValueBatches/{batch_id}")
-    except errors.PDCNotFoundError:
-        raise errors.ChangemakerFieldValueBatchNotFoundError
+    except errors.PDCNotFoundError as exc:
+        raise errors.ChangemakerFieldValueBatchNotFoundError(
+            detail=f"No changemaker field value batch with id {batch_id}", code=exc.code
+        ) from exc
     return ChangemakerFieldValueBatch.model_validate(response.json())
 
 
@@ -283,7 +283,7 @@ def get_funder(session: APISession, *, short_code: str) -> Funder:
     try:
         response = session.get(f"funders/{short_code}")
     except errors.PDCNotFoundError as exc:
-        raise errors.FunderNotFoundError(short_code) from exc
+        raise errors.FunderNotFoundError(detail=f"No funder with short code {short_code!r}", code=exc.code) from exc
     return Funder.model_validate(response.json())
 
 
@@ -315,9 +315,9 @@ def get_bundle_page[BundleT: PageableBundle](
     return bundle_type.model_validate(response.json())
 
 
-def register_file_upload(session: APISession, *, name: str, mime_type: str, size: int) -> File:
+def create_file(session: APISession, *, name: str, mime_type: str, size: int) -> File:
     response = session.post("files", json={"name": name, "mimeType": mime_type, "size": size})
-    return File(**response.json())
+    return File.model_validate(response.json())
 
 
 def upload_file_to_s3_presigned_url(
@@ -329,4 +329,4 @@ def upload_file_to_s3_presigned_url(
         response = requests.post(presigned_post.url, data=fields, files=files, timeout=120)
         response.raise_for_status()
     except requests.RequestException as exc:
-        raise errors.PDCServiceError(detail=f"Failed to upload file to S3: {exc}") from exc
+        raise errors.PDCServiceError(detail=f"Could not upload file to S3: {exc}") from exc

@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import pytest
 import requests
@@ -21,8 +22,8 @@ KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "pdc")
 KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "pdc-dev-ingest")
 KEYCLOAK_CLIENT_SECRET = os.environ.get("KEYCLOAK_CLIENT_SECRET", "password")
 PDC_API_TIMEOUT = float(os.environ.get("PDC_API_TIMEOUT", "30"))
-KC_ADMIN_USERNAME = os.environ.get("KEYCLOAK_ADMIN_USERNAME", "admin")
-KC_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "admin")
+KEYCLOAK_ADMIN_USERNAME = os.environ.get("KEYCLOAK_ADMIN_USERNAME", "admin")
+KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "admin")
 
 
 @pytest.fixture(scope="session")
@@ -55,8 +56,8 @@ def keycloak_admin() -> KeycloakAdmin:
     return KeycloakAdmin(
         keycloak_url=KEYCLOAK_SERVER_URL,
         realm=KEYCLOAK_REALM,
-        admin_username=KC_ADMIN_USERNAME,
-        admin_password=KC_ADMIN_PASSWORD,
+        admin_username=KEYCLOAK_ADMIN_USERNAME,
+        admin_password=KEYCLOAK_ADMIN_PASSWORD,
     )
 
 
@@ -116,3 +117,30 @@ def session_narrowed_to():
 @pytest.fixture(scope="session")
 def test_user_password() -> str:
     return TEST_USER_PASSWORD
+
+
+@pytest.fixture
+def suffix() -> str:
+    return uuid.uuid4().hex[:8]
+
+
+@pytest.fixture
+def fresh_keycloak_org(keycloak_admin, suffix):
+    alias = f"fresh-org-{suffix}"
+    return keycloak_admin.ensure_organization(
+        name=f"Fresh Org {suffix}",
+        alias=alias,
+        domain=f"{alias}.example.com",
+    )
+
+
+@pytest.fixture
+def add_user_to_org(keycloak_admin, keycloak_client_id, test_user_password):
+    keycloak_admin.ensure_direct_grants_enabled(client_id=keycloak_client_id)
+
+    def add(username: str, *orgs) -> None:
+        user = keycloak_admin.ensure_user(username=username, email=username, password=test_user_password)
+        for org in orgs:
+            keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id)
+
+    return add
