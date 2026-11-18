@@ -4,10 +4,17 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 0 * * 0"
   workflow_dispatch:
+    inputs:
+      upgrade:
+        description: Upgrade locked dependencies before running tests
+        type: boolean
+        default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -22,7 +29,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.55.0" # Keep in sync with minimum-version in justfile
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          cache-suffix: lint
+      - name: Check the lockfile is up to date
+        run: uv lock --check
       - run: just lint
       - run: uv build
       - name: Check generated models match the spec
@@ -31,28 +44,30 @@ jobs:
           git diff --exit-code src/pdc_api_client/_generated.py
 
   test:
-    name: Unit tests (Python ${{ matrix.python }}, ${{ matrix.resolution }})
+    name: Unit tests (Python ${{ matrix.python }}${{ matrix.lowest_direct && ', lowest direct dependencies' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - python: "3.12"
-            resolution: lowest-direct
+            lowest_direct: true
           - python: "3.14"
-            resolution: highest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.55.0" # Keep in sync with minimum-version in justfile
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: ${{ matrix.python }}
-      - name: Install the package and test tools
-        run: |
-          uv venv
-          uv pip install --resolution ${{ matrix.resolution }} ".[testing,seeding]" "pytest>=9" "pytest-cov>=7"
-      - run: .venv/bin/python -m pytest
+          cache-suffix: tests-py${{ matrix.python }}${{ matrix.lowest_direct && '-lowest-direct' || '' }}
+      - run: just test --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct} ${UPGRADE:+--upgrade}
+        env:
+          PYTHON: ${{ matrix.python }}
+          LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
+          UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
 
   integration:
     name: Integration tests
@@ -73,6 +88,24 @@ jobs:
         run: docker compose -f compose-ci.yml up -d --wait
         timeout-minutes: 5
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.55.0" # Keep in sync with minimum-version in justfile
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-      - run: just integration
+        with:
+          cache-suffix: integration
+      - run: just integration ${UPGRADE:+--upgrade}
         timeout-minutes: 5
+        env:
+          UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
+
+  notify:
+    name: Notify failed build
+    needs: [lint, test, integration]
+    if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: drivendataorg/failed-build-issue-action@940568ce50eeef3f31a920614cefcc6102d2f930 # v1.3.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

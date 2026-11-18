@@ -38,10 +38,13 @@ Changelog = "https://github.com/PhilanthropyDataCommons/pdc-python-client/blob/m
 [dependency-groups]
 dev = [
   "datamodel-code-generator[ruff]>=0.87",
+  "ruff>=0.17",
+  { include-group = "tests" },
+]
+tests = [
   "pdc-python-client[seeding,testing]",
   "pytest-cov>=7",
   "pytest>=9",
-  "ruff>=0.17",
 ]
 
 [build-system]
@@ -63,6 +66,9 @@ wheel-exclude = ["pdc_api_client/openapi.json"]
 
 [tool.coverage.run]
 relative_files = true
+
+[tool.coverage.paths]
+pdc_api_client = ["src/pdc_api_client/", "*/site-packages/pdc_api_client/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
