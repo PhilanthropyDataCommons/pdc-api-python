@@ -1,4 +1,9 @@
+# Keep in sync with just-version in .github/workflows/ci.yml
+set minimum-version := '1.55.0'
+
 mod pdc 'just/pdc.just'
+
+python := shell("cat .python-version")
 
 _default:
     @just --list --unsorted
@@ -15,15 +20,31 @@ format:
     uv run ruff format .
     uv run ruff check . --fix
 
-# Run the unit tests
+# Run the unit tests against the installed package
 [group('test')]
-test *args:
-    uv run pytest {{args}}
+[arg("python", long)]
+[arg("lowest_direct", long="lowest-direct", value="true")]
+[arg("upgrade", long, value="true")]
+test python=python lowest_direct="false" upgrade="false" *args:
+    @if [ "{{upgrade}}" = "true" ]; then uv lock --upgrade --dry-run; fi
+    uv run --python={{python}} \
+        {{ if lowest_direct == "true" { "--resolution=lowest-direct" } else { "" } }} \
+        {{ if upgrade == "true" { "--upgrade" } else { "" } }} \
+        --isolated --no-editable --no-dev --group tests --reinstall -- \
+        python -I -m pytest {{args}}
 
-# Run the integration tests against a live PDC stack (run `just pdc up` first)
+# Run the integration tests against the installed package and a live PDC stack (run `just pdc up` first)
 [group('test')]
-integration *args:
-    uv run pytest -c integration_tests/pytest.ini integration_tests/ {{args}}
+[arg("python", long)]
+[arg("lowest_direct", long="lowest-direct", value="true")]
+[arg("upgrade", long, value="true")]
+integration python=python lowest_direct="false" upgrade="false" *args:
+    @if [ "{{upgrade}}" = "true" ]; then uv lock --upgrade --dry-run; fi
+    uv run --python={{python}} \
+        {{ if lowest_direct == "true" { "--resolution=lowest-direct" } else { "" } }} \
+        {{ if upgrade == "true" { "--upgrade" } else { "" } }} \
+        --isolated --no-editable --no-dev --group tests --reinstall -- \
+        python -I -m pytest -c integration_tests/pytest.ini integration_tests/ {{args}}
 
 # Run lint, unit tests, and integration tests (run `just pdc up` first)
 [group('test')]

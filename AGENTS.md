@@ -23,7 +23,7 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 
 ## Commands
 
-- `just test` runs the unit tests, which mock all HTTP with `responses`.
+- `just test [--python VERSION] [--lowest-direct] [--upgrade] [-- ARGS]` runs the unit tests, which mock all HTTP with `responses`. `just integration` takes the same options. Both run against the installed package in an isolated environment, with the versions in `uv.lock` unless `--lowest-direct` or `--upgrade` resolves them fresh. Arguments after `--` go to pytest.
 - `just pdc up` starts PDC's CI stack in Docker; `just integration` runs the live suite against it.
 - Verify with `just check` (lint plus both suites). The unit tests can't catch a change in PDC's behavior; if the stack isn't available, run `just test` and `just lint` and say that integration verification is pending.
 
@@ -33,4 +33,4 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 - Write the test before the code. Assert transformations and branch behavior, not that a mock returned what it was given.
 - Every client function gets an integration test against PDC as well as unit tests, unless PDC's CI stack can't support it.
 - No docstrings, and comments only for a non-obvious why such as a PDC quirk, in one line.
-- Lower bounds only in `pyproject.toml`, and no lockfile. CI tests the lowest allowed versions on the oldest supported Python and the newest on the newest, so raise a bound when you use something newer, and fix breakage from new releases rather than pinning.
+- Lower bounds only in `pyproject.toml`. `uv.lock` pins the versions that development and CI use. CI also tests the lowest allowed versions on the oldest supported Python, and a weekly run tests the newest versions, so raise a bound when you use something newer, and fix breakage from new releases rather than pinning.

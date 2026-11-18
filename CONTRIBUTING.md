@@ -10,6 +10,18 @@ just integration  # integration tests against that stack
 just check        # lint, unit tests, and integration tests
 ```
 
+`just test` and `just integration` install the package into an isolated environment and run the tests against it, using the Python version in `.python-version` and the versions in `uv.lock`. Both take the same options, and pass arguments after `--` to pytest:
+
+- `--python VERSION` uses another Python.
+- `--lowest-direct` uses the lowest versions of direct dependencies that `pyproject.toml` allows.
+- `--upgrade` uses the newest versions and prints how they differ from `uv.lock`, without changing it.
+
+```bash
+just test --python 3.12 --lowest-direct -- -k token
+```
+
+`uv.lock` pins the versions used for development and CI. Update it with `uv lock --upgrade`. CI also runs both suites weekly with `--upgrade`, and opens an issue when that run fails.
+
 `just pdc up` downloads PDC's [`compose-ci.yml`](https://github.com/PhilanthropyDataCommons/service/blob/main/compose-ci.yml) and Keycloak realm from the service repo's main branch and starts the stack: the PDC API, Keycloak, Postgres, and S3. The integration tests reach Keycloak at `pdc-auth`, so add this line to `/etc/hosts`:
 
 ```text
