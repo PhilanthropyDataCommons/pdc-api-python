@@ -14,31 +14,47 @@ lint:
     uv run ruff check .
     uv run ruff format . --check
 
+# Run all three type checkers, failing at the end if any failed
+[group('dev')]
+[arg("python", long)]
+typecheck python=python:
+    #!/usr/bin/env bash
+    status=0
+    for checker in mypy pyrefly ty; do
+        {{just_executable()}} typecheck-$checker --python={{python}} || status=1
+    done
+    exit $status
+
+# Type check the package and tests with mypy, then the package in strict mode
+[group('dev')]
+[arg("python", long)]
+typecheck-mypy python=python:
+    #!/usr/bin/env bash
+    status=0
+    run="uv run --python={{python}} --isolated --no-dev --group tests --group typecheck --"
+    $run mypy --python-version={{python}} || status=1
+    $run mypy --python-version={{python}} --strict src || status=1
+    exit $status
+
+# Type check the package and tests with pyrefly (passes through args)
+[group('dev')]
+[arg("python", long)]
+typecheck-pyrefly python=python *args:
+    uv run --python={{python}} --isolated --no-dev --group tests --group typecheck -- \
+        pyrefly check --python-version={{python}} {{args}}
+
+# Type check the package and tests with ty (passes through args)
+[group('dev')]
+[arg("python", long)]
+typecheck-ty python=python *args:
+    uv run --python={{python}} --isolated --no-dev --group tests --group typecheck -- \
+        ty check --python-version={{python}} {{args}}
+
 # Format and autofix lint issues
 [group('dev')]
 format:
     uv run ruff format .
     uv run ruff check . --fix
-
-# Run all three type checkers
-[group('dev')]
-typecheck: typecheck-mypy typecheck-pyrefly typecheck-ty
-
-# Type check the package and tests with mypy, and the package again in strict mode
-[group('dev')]
-typecheck-mypy:
-    uv run mypy
-    uv run mypy --strict src
-
-# Type check the package and tests with pyrefly
-[group('dev')]
-typecheck-pyrefly *args:
-    uv run pyrefly check {{args}}
-
-# Type check the package and tests with ty
-[group('dev')]
-typecheck-ty *args:
-    uv run ty check {{args}}
 
 # Run the unit tests against the installed package
 [group('test')]
