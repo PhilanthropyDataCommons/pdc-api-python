@@ -20,6 +20,26 @@ format:
     uv run ruff format .
     uv run ruff check . --fix
 
+# Run all three type checkers
+[group('dev')]
+typecheck: typecheck-mypy typecheck-pyrefly typecheck-ty
+
+# Type check the package and tests with mypy, and the package again in strict mode
+[group('dev')]
+typecheck-mypy:
+    uv run mypy
+    uv run mypy --strict src
+
+# Type check the package and tests with pyrefly
+[group('dev')]
+typecheck-pyrefly *args:
+    uv run pyrefly check {{args}}
+
+# Type check the package and tests with ty
+[group('dev')]
+typecheck-ty *args:
+    uv run ty check {{args}}
+
 # Run the unit tests against the installed package
 [group('test')]
 [arg("python", long)]
