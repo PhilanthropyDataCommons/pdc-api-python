@@ -8,7 +8,7 @@ just test         # unit tests, no network
 just typecheck    # mypy, pyrefly, and ty
 just pdc up       # start PDC's CI stack in Docker
 just integration  # integration tests against that stack
-just check        # lint, unit tests, and integration tests
+just check        # lint, type checks, unit tests, and integration tests
 ```
 
 `just test` and `just integration` install the package into an isolated environment and run the tests against it, using the Python version in `.python-version` and the versions in `uv.lock`. Both take the same options, and pass arguments after `--` to pytest:
@@ -20,6 +20,8 @@ just check        # lint, unit tests, and integration tests
 ```bash
 just test --python 3.12 --lowest-direct -- -k token
 ```
+
+`just typecheck` takes `--python` and `--lowest-direct` too. CI type checks Python 3.12 with the lowest versions and Python 3.14 with `uv.lock`.
 
 `uv.lock` pins the versions used for development and CI. Update it with `uv lock --upgrade`. CI also runs both suites weekly with `--upgrade`, and opens an issue when that run fails.
 

@@ -142,6 +142,7 @@ class TestPermissionGrantsLifecycle:
         )
 
         created = create_permission_grant(api_session, spec=spec)
+        assert created.id is not None
         created_grant_ids.append(created.id)
 
         assert isinstance(created, ChangemakerPermissionGrant)

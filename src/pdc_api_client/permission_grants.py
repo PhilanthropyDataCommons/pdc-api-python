@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal, Self
 from uuid import UUID
 
 from pydantic import Field, TypeAdapter, field_validator, model_validator
@@ -43,7 +43,7 @@ class _PermissionGrantBase(BaseSchema):
     created_at: datetime | None = Field(default=None, alias="createdAt")
 
     @model_validator(mode="after")
-    def _check_grantee_keys_match_type(self):
+    def _check_grantee_keys_match_type(self) -> Self:
         if self.grantee_type == PermissionGrantGranteeType.USER:
             if self.grantee_user_keycloak_user_id is None:
                 raise ValueError("grantee_user_keycloak_user_id is required when grantee_type is 'user'")
@@ -194,9 +194,6 @@ PermissionGrant = Annotated[
 
 _PERMISSION_GRANT_ADAPTER: TypeAdapter[PermissionGrant] = TypeAdapter(PermissionGrant)
 
-# PDC rejects write bodies that include server-managed fields.
-_READONLY_FIELDS = frozenset({"id", "created_by", "created_at"})
-
 
 class PermissionGrantBundle(BaseSchema):
     pdc_endpoint: ClassVar[str] = _ENDPOINT
@@ -210,7 +207,7 @@ class DefaultPermissionGrant(_PermissionGrantBase):
 
     @field_validator("context_entity_type")
     @classmethod
-    def _reject_any_context(cls, value):
+    def _reject_any_context(cls, value: PermissionGrantEntityType) -> PermissionGrantEntityType:
         # PDC accepts "any" in scope but not as a default's context.
         if value == PermissionGrantEntityType.ANY:
             raise ValueError("context_entity_type cannot be 'any'")
@@ -224,13 +221,13 @@ class DefaultPermissionGrantBundle(BaseSchema):
     total: int
 
 
-def _validate_grant(payload: dict) -> PermissionGrant:
+def _validate_grant(payload: dict[str, Any]) -> PermissionGrant:
     return _PERMISSION_GRANT_ADAPTER.validate_python(payload)
 
 
-def _grant_to_payload(spec: PermissionGrant | DefaultPermissionGrant) -> dict:
-    # PDC rejects the unset grantee key, so drop None values.
-    return spec.model_dump(mode="json", by_alias=True, exclude=_READONLY_FIELDS, exclude_none=True)
+def _grant_to_payload(spec: PermissionGrant | DefaultPermissionGrant) -> dict[str, Any]:
+    # PDC rejects server-managed fields and the unset grantee key in write bodies.
+    return spec.model_dump(mode="json", by_alias=True, exclude={"id", "created_by", "created_at"}, exclude_none=True)
 
 
 def list_permission_grants(
@@ -244,7 +241,7 @@ def list_permission_grants(
     grantee_type: PermissionGrantGranteeType | None = None,
     verb: PermissionGrantVerb | None = None,
 ) -> PermissionGrantBundle:
-    extra_params: dict = {}
+    extra_params: dict[str, Any] = {}
     if changemaker is not None:
         extra_params["changemaker"] = changemaker
     if funder is not None:

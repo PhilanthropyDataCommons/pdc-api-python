@@ -44,7 +44,7 @@ jobs:
           git diff --exit-code src/pdc_api_client/_generated.py
 
   test:
-    name: Unit tests (Python ${{ matrix.python }}${{ matrix.lowest_direct && ', lowest direct dependencies' || '' }})
+    name: Unit tests and type checks (Python ${{ matrix.python }}${{ matrix.lowest_direct && ', lowest direct dependencies' || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -68,6 +68,11 @@ jobs:
           PYTHON: ${{ matrix.python }}
           LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
+      - run: just typecheck --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct}
+        if: ${{ !cancelled() }}
+        env:
+          PYTHON: ${{ matrix.python }}
+          LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
 
   integration:
     name: Integration tests

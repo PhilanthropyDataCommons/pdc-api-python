@@ -1,10 +1,17 @@
+from typing import Any
+from uuid import UUID
+
 import responses
+
+from pdc_api_client.client import PageableBundle
 
 CREATED_AT = "2026-01-01T00:00:00Z"
 CREATED_BY = "00000000-0000-0000-0000-000000000009"
 
 
-def changemaker_payload(*, id=1, name="Acme", keycloak_org_id=None, tax_id="12-3456789"):
+def changemaker_payload(
+    *, id: int = 1, name: str = "Acme", keycloak_org_id: str | UUID | None = None, tax_id: str = "12-3456789"
+) -> dict[str, Any]:
     return {
         "id": id,
         "taxId": tax_id,
@@ -18,7 +25,13 @@ def changemaker_payload(*, id=1, name="Acme", keycloak_org_id=None, tax_id="12-3
     }
 
 
-def funder_payload(*, short_code="acme", name="Acme Foundation", keycloak_org_id=None, is_collaborative=False):
+def funder_payload(
+    *,
+    short_code: str = "acme",
+    name: str = "Acme Foundation",
+    keycloak_org_id: str | UUID | None = None,
+    is_collaborative: bool = False,
+) -> dict[str, Any]:
     return {
         "shortCode": short_code,
         "name": name,
@@ -30,7 +43,9 @@ def funder_payload(*, short_code="acme", name="Acme Foundation", keycloak_org_id
     }
 
 
-def data_provider_payload(*, short_code="pdw", name="Philanthropy Data Warehouse", keycloak_org_id=None):
+def data_provider_payload(
+    *, short_code: str = "pdw", name: str = "Philanthropy Data Warehouse", keycloak_org_id: str | UUID | None = None
+) -> dict[str, Any]:
     return {
         "shortCode": short_code,
         "name": name,
@@ -40,7 +55,9 @@ def data_provider_payload(*, short_code="pdw", name="Philanthropy Data Warehouse
     }
 
 
-def base_field_payload(short_code="field", *, data_type="string", category="uncategorized"):
+def base_field_payload(
+    short_code: str = "field", *, data_type: str = "string", category: str = "uncategorized"
+) -> dict[str, Any]:
     return {
         "shortCode": short_code,
         "label": short_code,
@@ -54,7 +71,7 @@ def base_field_payload(short_code="field", *, data_type="string", category="unca
     }
 
 
-def proposal_payload(*, id=100, opportunity_id=5, external_id="ext-1"):
+def proposal_payload(*, id: int = 100, opportunity_id: int = 5, external_id: str = "ext-1") -> dict[str, Any]:
     return {
         "id": id,
         "opportunityId": opportunity_id,
@@ -66,7 +83,7 @@ def proposal_payload(*, id=100, opportunity_id=5, external_id="ext-1"):
     }
 
 
-def initiative_payload(*, id=1, changemaker_id=10, title="Summer meals"):
+def initiative_payload(*, id: int = 1, changemaker_id: int = 10, title: str = "Summer meals") -> dict[str, Any]:
     return {
         "id": id,
         "changemakerId": changemaker_id,
@@ -77,8 +94,14 @@ def initiative_payload(*, id=1, changemaker_id=10, title="Summer meals"):
 
 
 def initiative_field_value_payload(
-    *, id=1, initiative_id=1, short_code="field", value="", created_at=CREATED_AT, data_type="string"
-):
+    *,
+    id: int = 1,
+    initiative_id: int = 1,
+    short_code: str = "field",
+    value: str = "",
+    created_at: str = CREATED_AT,
+    data_type: str = "string",
+) -> dict[str, Any]:
     return {
         "id": id,
         "initiativeId": initiative_id,
@@ -95,7 +118,7 @@ def initiative_field_value_payload(
     }
 
 
-def changemaker_proposal_payload(*, id=1, changemaker_id=10, proposal_id=100):
+def changemaker_proposal_payload(*, id: int = 1, changemaker_id: int = 10, proposal_id: int = 100) -> dict[str, Any]:
     return {
         "id": id,
         "changemakerId": changemaker_id,
@@ -106,11 +129,16 @@ def changemaker_proposal_payload(*, id=1, changemaker_id=10, proposal_id=100):
     }
 
 
-def organization_payload(*, changemaker=None, funder=None, data_provider=None):
+def organization_payload(
+    *,
+    changemaker: dict[str, Any] | None = None,
+    funder: dict[str, Any] | None = None,
+    data_provider: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {"changemaker": changemaker, "funder": funder, "dataProvider": data_provider}
 
 
-def application_form_payload(*, id=7, version=1, opportunity_id=5):
+def application_form_payload(*, id: int = 7, version: int = 1, opportunity_id: int = 5) -> dict[str, Any]:
     return {
         "id": id,
         "version": version,
@@ -121,11 +149,11 @@ def application_form_payload(*, id=7, version=1, opportunity_id=5):
     }
 
 
-def source_payload(*, id=1, label="src"):
+def source_payload(*, id: int = 1, label: str = "src") -> dict[str, Any]:
     return {"id": id, "label": label, "createdAt": CREATED_AT}
 
 
-def proposal_version_payload(*, id=1, proposal_id=100, version=1):
+def proposal_version_payload(*, id: int = 1, proposal_id: int = 100, version: int = 1) -> dict[str, Any]:
     return {
         "id": id,
         "proposalId": proposal_id,
@@ -139,7 +167,9 @@ def proposal_version_payload(*, id=1, proposal_id=100, version=1):
     }
 
 
-def changemaker_field_value_batch_payload(*, id=1, source_id=1, notes="Routine annual import"):
+def changemaker_field_value_batch_payload(
+    *, id: int = 1, source_id: int = 1, notes: str | None = "Routine annual import"
+) -> dict[str, Any]:
     return {
         "id": id,
         "sourceId": source_id,
@@ -152,14 +182,14 @@ def changemaker_field_value_batch_payload(*, id=1, source_id=1, notes="Routine a
 
 def changemaker_field_value_payload(
     *,
-    id=1,
-    changemaker_id=10,
-    batch_id=1,
-    short_code="organization_name",
-    value="Acme",
-    is_valid=True,
-    batch=None,
-):
+    id: int = 1,
+    changemaker_id: int = 10,
+    batch_id: int = 1,
+    short_code: str = "organization_name",
+    value: str = "Acme",
+    is_valid: bool | None = True,
+    batch: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "id": id,
         "changemakerId": changemaker_id,
@@ -175,12 +205,19 @@ def changemaker_field_value_payload(
     }
 
 
-def bundle(entries, *, total=None):
+def bundle(entries: list[dict[str, Any]], *, total: int | None = None) -> dict[str, Any]:
     return {"entries": entries, "total": total if total is not None else len(entries)}
 
 
-def add_json_response(*, base_url, path, payload, status=200, query_params=None):
-    add_kwargs = {
+def add_json_response(
+    *,
+    base_url: str,
+    path: str,
+    payload: dict[str, Any] | list[Any],
+    status: int = 200,
+    query_params: dict[str, Any] | None = None,
+) -> None:
+    add_kwargs: dict[str, Any] = {
         "method": responses.GET,
         "url": f"{base_url.rstrip('/')}/{path.lstrip('/')}",
         "json": payload,
@@ -191,7 +228,9 @@ def add_json_response(*, base_url, path, payload, status=200, query_params=None)
     responses.add(**add_kwargs)
 
 
-def add_changemaker_response(*, base_url, id=1, status=200, payload=None, **payload_kwargs):
+def add_changemaker_response(
+    *, base_url: str, id: int = 1, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
+) -> None:
     add_json_response(
         base_url=base_url,
         path=f"changemakers/{id}",
@@ -200,7 +239,14 @@ def add_changemaker_response(*, base_url, id=1, status=200, payload=None, **payl
     )
 
 
-def add_funder_response(*, base_url, short_code="acme", status=200, payload=None, **payload_kwargs):
+def add_funder_response(
+    *,
+    base_url: str,
+    short_code: str = "acme",
+    status: int = 200,
+    payload: dict[str, Any] | None = None,
+    **payload_kwargs: Any,
+) -> None:
     add_json_response(
         base_url=base_url,
         path=f"funders/{short_code}",
@@ -209,7 +255,9 @@ def add_funder_response(*, base_url, short_code="acme", status=200, payload=None
     )
 
 
-def add_proposal_response(*, base_url, id=100, status=200, payload=None, **payload_kwargs):
+def add_proposal_response(
+    *, base_url: str, id: int = 100, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
+) -> None:
     add_json_response(
         base_url=base_url,
         path=f"proposals/{id}",
@@ -218,7 +266,9 @@ def add_proposal_response(*, base_url, id=100, status=200, payload=None, **paylo
     )
 
 
-def add_application_form_response(*, base_url, id=7, status=200, payload=None, **payload_kwargs):
+def add_application_form_response(
+    *, base_url: str, id: int = 7, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
+) -> None:
     add_json_response(
         base_url=base_url,
         path=f"applicationForms/{id}",
@@ -227,7 +277,9 @@ def add_application_form_response(*, base_url, id=7, status=200, payload=None, *
     )
 
 
-def add_organization_response(*, base_url, keycloak_id, status=200, payload=None, **payload_kwargs):
+def add_organization_response(
+    *, base_url: str, keycloak_id: str, status: int = 200, payload: dict[str, Any] | None = None, **payload_kwargs: Any
+) -> None:
     add_json_response(
         base_url=base_url,
         path=f"organizations/{keycloak_id}",
@@ -237,18 +289,18 @@ def add_organization_response(*, base_url, keycloak_id, status=200, payload=None
 
 
 def add_page_response(
-    bundle_type,
+    bundle_type: type[PageableBundle],
     *,
-    base_url,
-    payload,
-    page=1,
-    count_per_page=None,
-    content=None,
-    status=200,
-    extra_params=None,
-    path_params=None,
-):
-    query_params = {"_page": page, "_count": count_per_page or bundle_type.default_page_size}
+    base_url: str,
+    payload: dict[str, Any],
+    page: int = 1,
+    count_per_page: int | None = None,
+    content: str | None = None,
+    status: int = 200,
+    extra_params: dict[str, Any] | None = None,
+    path_params: dict[str, Any] | None = None,
+) -> None:
+    query_params: dict[str, Any] = {"_page": page, "_count": count_per_page or bundle_type.default_page_size}
     if content:
         query_params["_content"] = content
     if extra_params:

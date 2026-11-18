@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 import pytest
@@ -21,7 +22,7 @@ ORG_UUID = UUID("00000000-0000-0000-0000-000000000001")
 USER_UUID = UUID("00000000-0000-0000-0000-000000000002")
 
 
-def _changemaker_grant_payload(*, grant_id, changemaker_id, grantee_org_id):
+def _changemaker_grant_payload(*, grant_id: int, changemaker_id: int, grantee_org_id: UUID) -> dict[str, Any]:
     return {
         "id": grant_id,
         "contextEntityType": "changemaker",

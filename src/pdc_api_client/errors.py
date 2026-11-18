@@ -1,5 +1,8 @@
+from typing import Any
+
+
 class PDCException(Exception):
-    def __init__(self, *, detail, code=None):
+    def __init__(self, *, detail: Any, code: int | None = None) -> None:
         super().__init__(str(detail))
         self.detail = detail
         self.code = code

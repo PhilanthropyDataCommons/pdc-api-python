@@ -54,6 +54,7 @@ def changemaker_managed_by(api_session):
                 scope=[PermissionGrantEntityType.ANY],
             ),
         )
+        assert grant.id is not None
         grant_ids.append(grant.id)
         return changemaker.id
 
