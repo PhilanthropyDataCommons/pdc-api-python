@@ -14,7 +14,7 @@ just check        # lint, unit tests, and integration tests
 
 - `--python VERSION` uses another Python.
 - `--lowest-direct` uses the lowest versions of direct dependencies that `pyproject.toml` allows.
-- `--upgrade` uses the newest versions and prints how they differ from `uv.lock`, without changing it.
+- `--upgrade` uses the newest versions released at least a week ago (`exclude-newer` in `pyproject.toml`) and prints how they differ from `uv.lock`, without changing it.
 
 ```bash
 just test --python 3.12 --lowest-direct -- -k token

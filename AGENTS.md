@@ -33,4 +33,4 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 - Write the test before the code. Assert transformations and branch behavior, not that a mock returned what it was given.
 - Every client function gets an integration test against PDC as well as unit tests, unless PDC's CI stack can't support it.
 - No docstrings, and comments only for a non-obvious why such as a PDC quirk, in one line.
-- Lower bounds only in `pyproject.toml`. `uv.lock` pins the versions that development and CI use. CI also tests the lowest allowed versions on the oldest supported Python, and a weekly run tests the newest versions, so raise a bound when you use something newer, and fix breakage from new releases rather than pinning.
+- Lower bounds only in `pyproject.toml`. `uv.lock` pins the versions that development and CI use. CI also tests the lowest allowed versions on the oldest supported Python, and a weekly run tests the newest versions released at least a week ago, so raise a bound when you use something newer, and fix breakage from new releases rather than pinning.
