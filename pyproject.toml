@@ -63,7 +63,6 @@ source-include = [
   "CHANGELOG.md",
   "codegen/*.py",
   "integration_tests/*.py",
-  "integration_tests/pytest.ini",
   "just/*.just",
   "justfile",
   "tests/*.py",
