@@ -73,7 +73,7 @@ test python=python lowest_direct="false" upgrade="false" *args: (_pytest python 
 [arg("python", long)]
 [arg("lowest_direct", long="lowest-direct", value="true")]
 [arg("upgrade", long, value="true")]
-integration python=python lowest_direct="false" upgrade="false" *args: (_pytest python lowest_direct upgrade "-c integration_tests/pytest.ini integration_tests/ " + args)
+integration python=python lowest_direct="false" upgrade="false" *args: (_pytest python lowest_direct upgrade "integration_tests/ " + args)
 
 _typecheck python lowest_direct tool *args:
     uv run --python={{python}} {{ if lowest_direct == "true" { "--resolution=lowest-direct" } else { "" } }} --isolated --no-dev --group tests --group typecheck -- \

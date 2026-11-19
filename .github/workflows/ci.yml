@@ -95,6 +95,13 @@ jobs:
           PYTHON: ${{ matrix.python }}
           LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
+      - name: Upload unit test coverage data
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-unit-py${{ matrix.python }}${{ matrix.lowest_direct && '-lowest-direct' || '' }}
+          path: .coverage
+          include-hidden-files: true
+          if-no-files-found: error
       - name: Run the type checks
         run: just typecheck --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct}
         if: ${{ !cancelled() }}
@@ -137,11 +144,66 @@ jobs:
         timeout-minutes: 5
         env:
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
+      - name: Upload integration test coverage data
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-integration
+          path: .coverage
+          include-hidden-files: true
+          if-no-files-found: error
+
+  coverage:
+    name: Coverage
+    needs: [unit-tests-and-type-checks, integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          cache-suffix: coverage
+      - name: Download coverage data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-data-*
+      - name: Report unit and integration coverage separately
+        run: |
+          coverage() { uv run --no-dev --group tests -- coverage "$@"; }
+          for suite in unit integration; do
+            coverage combine --data-file=".coverage.$suite" coverage-data-"$suite"*/.coverage
+            coverage report --data-file=".coverage.$suite" --show-missing
+            coverage html --data-file=".coverage.$suite" --directory="htmlcov/$suite" --title="${suite^} test coverage"
+            coverage json --data-file=".coverage.$suite" -o "coverage-json/$suite.json"
+            { echo "## ${suite^} test coverage"; coverage report --data-file=".coverage.$suite" --format=markdown; } >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload HTML coverage reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-html
+          path: htmlcov/
+      - name: Upload JSON coverage reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-json
+          path: coverage-json/
+      - name: Merge coverage data into one artifact
+        uses: actions/upload-artifact/merge@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data
+          pattern: coverage-data-*
+          separate-directories: true
+          include-hidden-files: true
+          delete-merged: true
 
   all-green:
     name: All green
     if: always()
-    needs: [lint, zizmor, unit-tests-and-type-checks, integration]
+    needs: [lint, zizmor, unit-tests-and-type-checks, integration, coverage]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -152,7 +214,7 @@ jobs:
 
   notify:
     name: Notify failed build
-    needs: [lint, zizmor, unit-tests-and-type-checks, integration]
+    needs: [lint, zizmor, unit-tests-and-type-checks, integration, coverage]
     if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
     runs-on: ubuntu-latest
     permissions:
