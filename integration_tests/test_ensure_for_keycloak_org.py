@@ -1,4 +1,4 @@
-from pdc_api_client.seeding.pdc_entities import (
+from pdc_api.seeding.pdc_entities import (
     ensure_changemaker_for_keycloak_org,
     ensure_data_provider_for_keycloak_org,
     ensure_funder_for_keycloak_org,

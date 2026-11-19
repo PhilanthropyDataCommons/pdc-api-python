@@ -3,7 +3,7 @@ from uuid import UUID
 
 import responses
 
-from pdc_api_client.client import PageableBundle
+from pdc_api.client import PageableBundle
 
 CREATED_AT = "2026-01-01T00:00:00Z"
 CREATED_BY = "00000000-0000-0000-0000-000000000009"

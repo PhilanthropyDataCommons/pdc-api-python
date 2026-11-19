@@ -1045,7 +1045,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pdc-python-client"
+name = "pdc-api"
 version = "0.3.0"
 source = { editable = "." }
 dependencies = [
@@ -1067,7 +1067,7 @@ testing = [
 dev = [
     { name = "datamodel-code-generator", extra = ["ruff"] },
     { name = "mypy" },
-    { name = "pdc-python-client", extra = ["seeding", "testing"] },
+    { name = "pdc-api", extra = ["seeding", "testing"] },
     { name = "pyrefly" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -1075,7 +1075,7 @@ dev = [
     { name = "ty" },
 ]
 tests = [
-    { name = "pdc-python-client", extra = ["seeding", "testing"] },
+    { name = "pdc-api", extra = ["seeding", "testing"] },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -1100,7 +1100,7 @@ provides-extras = ["testing", "seeding"]
 dev = [
     { name = "datamodel-code-generator", extras = ["ruff"], specifier = ">=0.87" },
     { name = "mypy", specifier = ">=2.4.1" },
-    { name = "pdc-python-client", extras = ["seeding", "testing"] },
+    { name = "pdc-api", extras = ["seeding", "testing"] },
     { name = "pyrefly", specifier = ">=1.4.1" },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-cov", specifier = ">=7" },
@@ -1108,7 +1108,7 @@ dev = [
     { name = "ty", specifier = ">=0.0.100" },
 ]
 tests = [
-    { name = "pdc-python-client", extras = ["seeding", "testing"] },
+    { name = "pdc-api", extras = ["seeding", "testing"] },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-cov", specifier = ">=7" },
 ]

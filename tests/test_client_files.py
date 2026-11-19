@@ -3,9 +3,9 @@ import json
 import pytest
 import responses
 
-from pdc_api_client.client import upload_file_to_s3_presigned_url
-from pdc_api_client.errors import PDCServiceError
-from pdc_api_client.models import File, PresignedPost
+from pdc_api.client import upload_file_to_s3_presigned_url
+from pdc_api.errors import PDCServiceError
+from pdc_api.models import File, PresignedPost
 
 PRESIGNED_URL = "https://s3.example.com/upload"
 

@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 import responses
 
-from pdc_api_client.client import (
+from pdc_api.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
     create_changemaker_source,
@@ -23,14 +23,14 @@ from pdc_api_client.client import (
     get_proposal,
     link_changemaker_to_proposal,
 )
-from pdc_api_client.errors import (
+from pdc_api.errors import (
     ApplicationFormNotFoundError,
     ChangemakerNotFoundError,
     FunderNotFoundError,
     PDCNotFoundError,
     ProposalNotFoundError,
 )
-from pdc_api_client.models import (
+from pdc_api.models import (
     ChangemakerBundle,
     ChangemakerProposal,
     FunderCollaborativeMemberBundle,
@@ -38,7 +38,7 @@ from pdc_api_client.models import (
     NewProposalVersion,
     Organization,
 )
-from pdc_api_client.testing import (
+from pdc_api.testing import (
     application_form_payload,
     bundle,
     changemaker_field_value_batch_payload,

@@ -2,16 +2,16 @@ import uuid
 
 import pytest
 
-from pdc_api_client.client import get_changemaker
-from pdc_api_client.models import PermissionGrantEntityType, PermissionGrantVerb
-from pdc_api_client.permission_grants import (
+from pdc_api.client import get_changemaker
+from pdc_api.models import PermissionGrantEntityType, PermissionGrantVerb
+from pdc_api.permission_grants import (
     ChangemakerPermissionGrant,
     PermissionGrantGranteeType,
     create_permission_grant,
     delete_permission_grant,
 )
-from pdc_api_client.seeding.pdc_entities import seed_changemaker
-from pdc_api_client.transport import APISession
+from pdc_api.seeding.pdc_entities import seed_changemaker
+from pdc_api.transport import APISession
 
 
 def _can_manage(session: APISession, changemaker_id: int) -> bool:

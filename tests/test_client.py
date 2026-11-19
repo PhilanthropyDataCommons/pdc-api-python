@@ -1,7 +1,7 @@
 import pytest
 
-from pdc_api_client import errors
-from pdc_api_client.client import (
+from pdc_api import errors
+from pdc_api.client import (
     _iterate_pages,
     get_base_fields,
     get_changemaker_field_value_batch,
@@ -12,7 +12,7 @@ from pdc_api_client.client import (
     get_funders,
     get_initiatives,
 )
-from pdc_api_client.models import (
+from pdc_api.models import (
     BaseFieldDataType,
     Changemaker,
     ChangemakerFieldValue,
@@ -21,10 +21,10 @@ from pdc_api_client.models import (
     DataProvider,
     Funder,
 )
-from pdc_api_client.testing import (
+from pdc_api.testing import (
     base_field_payload as _basefield,
 )
-from pdc_api_client.testing import (
+from pdc_api.testing import (
     bundle,
     changemaker_field_value_batch_payload,
     changemaker_field_value_payload,

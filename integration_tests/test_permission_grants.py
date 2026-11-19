@@ -3,9 +3,9 @@ from uuid import UUID
 
 import pytest
 
-from pdc_api_client.errors import PDCNotFoundError
-from pdc_api_client.models import BaseFieldCategory
-from pdc_api_client.permission_grants import (
+from pdc_api.errors import PDCNotFoundError
+from pdc_api.models import BaseFieldCategory
+from pdc_api.permission_grants import (
     ChangemakerPermissionGrant,
     FunderPermissionGrant,
     PermissionGrantConditionRule,
@@ -20,7 +20,7 @@ from pdc_api_client.permission_grants import (
     list_permission_grants,
     update_permission_grant,
 )
-from pdc_api_client.seeding.pdc_entities import seed_changemaker, seed_funder, seed_proposal
+from pdc_api.seeding.pdc_entities import seed_changemaker, seed_funder, seed_proposal
 
 
 @pytest.fixture()

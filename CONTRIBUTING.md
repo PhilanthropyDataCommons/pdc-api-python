@@ -49,8 +49,8 @@ gh run download <run-id> -n coverage-json
 ## Updating to a new PDC spec
 
 ```bash
-just update-api-spec  # download the current spec into src/pdc_api_client/openapi.json
-just codegen          # regenerate src/pdc_api_client/_generated.py
+just update-api-spec  # download the current spec into src/pdc_api/openapi.json
+just codegen          # regenerate src/pdc_api/_generated.py
 just check
 ```
 

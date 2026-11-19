@@ -5,8 +5,8 @@ from typing import Any, ClassVar, Protocol, Self
 
 import requests
 
-from pdc_api_client import errors
-from pdc_api_client.models import (
+from pdc_api import errors
+from pdc_api.models import (
     BaseField,
     Changemaker,
     ChangemakerApplicationForm,
@@ -25,7 +25,7 @@ from pdc_api_client.models import (
     ProposalVersion,
     Source,
 )
-from pdc_api_client.transport import APISession
+from pdc_api.transport import APISession
 
 
 def _iterate_pages(

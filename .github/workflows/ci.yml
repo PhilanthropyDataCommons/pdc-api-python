@@ -47,7 +47,7 @@ jobs:
       - name: Check generated models match the spec
         run: |
           just codegen
-          git diff --exit-code src/pdc_api_client/_generated.py
+          git diff --exit-code src/pdc_api/_generated.py
 
   zizmor:
     name: Zizmor audit

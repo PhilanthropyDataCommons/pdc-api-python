@@ -3,7 +3,7 @@ from typing import Protocol, runtime_checkable
 
 import requests
 
-from pdc_api_client.errors import PDCServiceError, TokenRequestError
+from pdc_api.errors import PDCServiceError, TokenRequestError
 
 
 @runtime_checkable

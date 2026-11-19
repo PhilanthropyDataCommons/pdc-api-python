@@ -1,6 +1,6 @@
-from pdc_api_client import _generated
-from pdc_api_client.models import Funder, InitiativeFieldValue
-from pdc_api_client.testing import funder_payload, initiative_field_value_payload
+from pdc_api import _generated
+from pdc_api.models import Funder, InitiativeFieldValue
+from pdc_api.testing import funder_payload, initiative_field_value_payload
 
 
 class TestFunder:

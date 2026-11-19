@@ -2,10 +2,10 @@ import uuid
 
 import pytest
 
-from pdc_api_client.client import get_application_form
-from pdc_api_client.errors import PDCBadRequestError
-from pdc_api_client.models import ChangemakerApplicationForm
-from pdc_api_client.seeding.pdc_entities import seed_application_form, seed_base_field, seed_opportunity
+from pdc_api.client import get_application_form
+from pdc_api.errors import PDCBadRequestError
+from pdc_api.models import ChangemakerApplicationForm
+from pdc_api.seeding.pdc_entities import seed_application_form, seed_base_field, seed_opportunity
 
 SPEC_ENUM_VALUES = ["shortText", "longText", "radio", "dropdown", "multiselect", "hidden"]
 

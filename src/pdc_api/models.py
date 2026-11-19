@@ -3,12 +3,12 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from pdc_api_client import _generated
-from pdc_api_client._base import BaseSchema
-from pdc_api_client._generated import (
+from pdc_api import _generated
+from pdc_api._base import BaseSchema
+from pdc_api._generated import (
     ApplicationForm as ChangemakerApplicationForm,
 )
-from pdc_api_client._generated import (
+from pdc_api._generated import (
     ApplicationFormField,
     BaseField,
     BaseFieldCategory,
@@ -37,10 +37,10 @@ from pdc_api_client._generated import (
     ShallowChangemaker,
     Source,
 )
-from pdc_api_client._generated import (
+from pdc_api._generated import (
     ApplicationFormFieldInputType as InputType,
 )
-from pdc_api_client._generated import (
+from pdc_api._generated import (
     DataType as BaseFieldDataType,
 )
 

@@ -1,4 +1,4 @@
-from pdc_api_client.seeding.keycloak_admin import KeycloakOrganization, KeycloakUser
+from pdc_api.seeding.keycloak_admin import KeycloakOrganization, KeycloakUser
 
 
 class TestEnsureOrganization:

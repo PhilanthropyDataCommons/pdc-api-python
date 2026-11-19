@@ -1,7 +1,7 @@
 import pytest
 import responses
 
-from pdc_api_client.seeding.keycloak_admin import KeycloakAdmin
+from pdc_api.seeding.keycloak_admin import KeycloakAdmin
 
 KEYCLOAK_URL = "https://keycloak.test"
 ORGANIZATIONS_URL = f"{KEYCLOAK_URL}/admin/realms/pdc/organizations"
