@@ -71,6 +71,7 @@ source-include = [
 wheel-exclude = ["pdc_api_client/openapi.json"]
 
 [tool.coverage.run]
+branch = true
 relative_files = true
 
 [tool.coverage.paths]
@@ -78,7 +79,7 @@ pdc_api_client = ["src/pdc_api_client/", "*/site-packages/pdc_api_client/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--cov=pdc_api_client", "--cov-report=term-missing", "--cov-branch"]
+addopts = ["--cov=pdc_api_client", "--cov-report=term-missing"]
 
 [tool.mypy]
 files = ["src", "tests", "integration_tests"]

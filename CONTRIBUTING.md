@@ -36,6 +36,16 @@ The integration tests read their settings from environment variables (`PDC_API_U
 
 The unit tests mock every HTTP call, so they can't catch a change in PDC's behavior. The integration tests can, and CI runs both on every pull request.
 
+Both suites print a coverage report. CI reports each suite's coverage separately in the run summary, with unit coverage combined across the Python versions it tests. Each run uploads three artifacts:
+
+- `coverage-html`: an HTML report for each suite.
+- `coverage-json`: `unit.json` and `integration.json`, from `coverage json`.
+- `coverage-data`: the raw coverage data from each test job, one directory per job.
+
+```bash
+gh run download <run-id> -n coverage-json
+```
+
 ## Updating to a new PDC spec
 
 ```bash
