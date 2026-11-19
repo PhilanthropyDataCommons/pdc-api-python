@@ -8,14 +8,14 @@ import requests
 from pdc_api_client.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
-    create_changemaker_proposal,
-    create_changemaker_proposal_version,
     create_changemaker_source,
     create_initiative,
     create_initiative_field_value,
+    create_proposal,
+    create_proposal_version,
     get_application_form,
     get_application_form_by_name,
-    get_basefields,
+    get_base_fields,
     get_bundle_page,
     get_changemaker,
     get_changemaker_field_values,
@@ -81,16 +81,16 @@ class TestAuthentication:
 
 class TestBaseFields:
     def test_get_basefields_returns_list(self, api_session):
-        result = list(get_basefields(api_session))
+        result = list(get_base_fields(api_session))
         assert len(result) > 0
 
     def test_seeded_base_field_exists(self, api_session, seeded_pdc_stack):
-        result = list(get_basefields(api_session))
+        result = list(get_base_fields(api_session))
         short_codes = [bf.short_code for bf in result]
         assert seeded_pdc_stack.application_form.fields[0]["baseFieldShortCode"] in short_codes
 
     def test_base_field_parses_as_pydantic_model(self, api_session):
-        result = list(get_basefields(api_session))
+        result = list(get_base_fields(api_session))
         bf = result[0]
         assert isinstance(bf, BaseField)
         assert bf.short_code
@@ -152,8 +152,8 @@ class TestFunderCollaboratives:
         assert regular.short_code not in short_codes
         assert all(entry.is_collaborative is True for entry in bundle.entries)
 
-    def test_search_combined_with_is_collaborative_filter(self, api_session):
-        marker = f"inttest-combo-{uuid.uuid4().hex[:8]}"
+    def test_search_combined_with_is_collaborative_filter(self, api_session, suffix):
+        marker = f"inttest-combo-{suffix}"
         matching_collab = seed_funder(
             api_session,
             name=f"{marker} Funders Collaborative",
@@ -181,8 +181,8 @@ class TestFunderCollaboratives:
         assert matching_regular.short_code not in short_codes
         assert all(entry.is_collaborative is True for entry in bundle.entries)
 
-    def test_pagination_with_is_collaborative_filter(self, api_session):
-        marker = f"inttest-page-{uuid.uuid4().hex[:8]}"
+    def test_pagination_with_is_collaborative_filter(self, api_session, suffix):
+        marker = f"inttest-page-{suffix}"
         collaboratives = [
             seed_funder(
                 api_session,
@@ -542,22 +542,22 @@ class TestApplicationForm:
             base_field_short_codes=[base_field.short_code],
         )
 
-        form = get_application_form(api_session, form_id=seeded_form.id)
+        form = get_application_form(api_session, application_form_id=seeded_form.id)
 
         assert isinstance(form, ChangemakerApplicationForm)
         assert form.id == seeded_form.id
         assert form.opportunity_id == opportunity.id
         assert {f.base_field.short_code for f in form.fields} == {base_field.short_code}
 
-    def test_get_application_form_by_name_finds_seeded_form(self, api_session):
-        name = f"Named form {uuid.uuid4().hex[:8]}"
+    def test_get_application_form_by_name_finds_seeded_form(self, api_session, suffix):
+        name = f"Named form {suffix}"
         seeded_form = seed_application_form(api_session, name=name)
 
         assert get_application_form_by_name(api_session, name=name).id == seeded_form.id
 
 
 class TestProposalCreationFlow:
-    def test_create_proposal_link_and_round_trip(self, api_session):
+    def test_create_proposal_link_and_round_trip(self, api_session, suffix):
         funder = seed_funder(api_session)
         opportunity = seed_opportunity(api_session, funder=funder)
         source = seed_source(api_session, funder_short_code=funder.short_code)
@@ -570,15 +570,15 @@ class TestProposalCreationFlow:
         application_form_field_id = application_form.fields[0]["id"]
         changemaker = seed_changemaker(api_session)
 
-        proposal = create_changemaker_proposal(
+        proposal = create_proposal(
             api_session,
             data={
                 "opportunityId": opportunity.id,
-                "externalId": f"inttest-{uuid.uuid4().hex[:8]}",
+                "externalId": f"inttest-{suffix}",
             },
         )
 
-        proposal_version = create_changemaker_proposal_version(
+        proposal_version = create_proposal_version(
             api_session,
             proposal_version=NewProposalVersion(
                 proposal_id=proposal.id,

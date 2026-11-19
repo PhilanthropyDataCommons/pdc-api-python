@@ -60,7 +60,7 @@ class TestKeycloakClientCredentialsProvider:
         assert provider.get_token() == "second"
         assert len(responses.calls) == 2
 
-    def test_non_200_raises_token_request_error(self):
+    def test_raises_token_request_error_on_non_200(self):
         _add_token(status=401)
 
         provider = _provider()
@@ -68,7 +68,7 @@ class TestKeycloakClientCredentialsProvider:
         with pytest.raises(TokenRequestError):
             provider.get_token()
 
-    def test_non_json_error_body_still_raises_token_request_error(self):
+    def test_raises_token_request_error_on_non_json_error_body(self):
         responses.add(method=responses.POST, url=TOKEN_URL, body="<html>502 Bad Gateway</html>", status=502)
 
         provider = _provider()
@@ -76,7 +76,7 @@ class TestKeycloakClientCredentialsProvider:
         with pytest.raises(TokenRequestError):
             provider.get_token()
 
-    def test_non_json_success_body_raises_token_request_error(self):
+    def test_raises_token_request_error_on_non_json_success_body(self):
         responses.add(method=responses.POST, url=TOKEN_URL, body="<html>not json</html>", status=200)
 
         provider = _provider()
@@ -84,7 +84,7 @@ class TestKeycloakClientCredentialsProvider:
         with pytest.raises(TokenRequestError):
             provider.get_token()
 
-    def test_success_body_missing_access_token_raises_token_request_error(self):
+    def test_raises_token_request_error_on_missing_access_token(self):
         responses.add(method=responses.POST, url=TOKEN_URL, json={"expires_in": 300}, status=200)
 
         provider = _provider()
@@ -92,7 +92,7 @@ class TestKeycloakClientCredentialsProvider:
         with pytest.raises(TokenRequestError):
             provider.get_token()
 
-    def test_connection_failure_raises_service_error(self):
+    def test_raises_service_error_on_connection_failure(self):
         provider = _provider()  # no response registered -> ConnectionError
 
         with pytest.raises(PDCServiceError):

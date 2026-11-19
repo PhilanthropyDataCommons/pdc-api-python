@@ -20,9 +20,7 @@ def _can_manage(session: APISession, changemaker_id: int) -> bool:
 
 
 @pytest.fixture()
-def user_in_two_orgs(keycloak_admin, keycloak_client_id, test_user_password):
-    suffix = uuid.uuid4().hex[:8]
-    keycloak_admin.ensure_direct_grants_enabled(client_id=keycloak_client_id)
+def user_in_two_orgs(keycloak_admin, add_user_to_org, suffix):
     org_a, org_b = (
         keycloak_admin.ensure_organization(
             name=f"Membership {suffix} {label}",
@@ -32,9 +30,7 @@ def user_in_two_orgs(keycloak_admin, keycloak_client_id, test_user_password):
         for label in ("a", "b")
     )
     username = f"membership-{suffix}@example.com"
-    user = keycloak_admin.ensure_user(username=username, email=username, password=test_user_password)
-    for org in (org_a, org_b):
-        keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id)
+    add_user_to_org(username, org_a, org_b)
     return username, org_a, org_b
 
 
@@ -46,7 +42,7 @@ def changemaker_managed_by(api_session):
         changemaker = seed_changemaker(api_session)
         grant = create_permission_grant(
             api_session,
-            spec=ChangemakerPermissionGrant(
+            grant=ChangemakerPermissionGrant(
                 changemaker_id=changemaker.id,
                 grantee_type=PermissionGrantGranteeType.USER_GROUP,
                 grantee_keycloak_organization_id=uuid.UUID(org_id),
@@ -63,17 +59,20 @@ def changemaker_managed_by(api_session):
         delete_permission_grant(api_session, grant_id=grant_id)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="PhilanthropyDataCommons/service#2617: a token's user-group grants leak into the user's other tokens",
-)
-def test_permissions_follow_only_the_current_tokens_org(user_in_two_orgs, changemaker_managed_by, session_narrowed_to):
-    username, org_a, org_b = user_in_two_orgs
-    changemaker_id = changemaker_managed_by(org_a.id)
-    as_b = session_narrowed_to(username, org_b.alias)
+class TestPermissionsPerToken:
+    @pytest.mark.xfail(
+        strict=True,
+        reason="PhilanthropyDataCommons/service#2617: a token's user-group grants leak into the user's other tokens",
+    )
+    def test_permissions_follow_only_the_current_tokens_org(
+        self, user_in_two_orgs, changemaker_managed_by, session_narrowed_to
+    ):
+        username, org_a, org_b = user_in_two_orgs
+        changemaker_id = changemaker_managed_by(org_a.id)
+        as_b = session_narrowed_to(username, org_b.alias)
 
-    assert not _can_manage(as_b, changemaker_id)
+        assert not _can_manage(as_b, changemaker_id)
 
-    _can_manage(session_narrowed_to(username, org_a.alias), changemaker_id)
+        _can_manage(session_narrowed_to(username, org_a.alias), changemaker_id)
 
-    assert not _can_manage(as_b, changemaker_id)
+        assert not _can_manage(as_b, changemaker_id)

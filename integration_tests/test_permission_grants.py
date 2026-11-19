@@ -92,7 +92,7 @@ class TestPermissionGrantsLifecycle:
             grantee_org_id=grantee_org_id,
         )
 
-        created = create_permission_grant(api_session, spec=spec)
+        created = create_permission_grant(api_session, grant=spec)
         created_grant_ids.append(created.id)
 
         assert isinstance(created, ChangemakerPermissionGrant)
@@ -109,7 +109,7 @@ class TestPermissionGrantsLifecycle:
             grantee_org_id=grantee_org_id,
         )
         update_spec.verbs = [PermissionGrantVerb.VIEW, PermissionGrantVerb.EDIT]
-        updated = update_permission_grant(api_session, grant_id=created.id, spec=update_spec)
+        updated = update_permission_grant(api_session, grant_id=created.id, grant=update_spec)
         assert set(updated.verbs) == {PermissionGrantVerb.VIEW, PermissionGrantVerb.EDIT}
 
         delete_permission_grant(api_session, grant_id=created.id)
@@ -123,7 +123,7 @@ class TestPermissionGrantsLifecycle:
             changemaker_id=seeded_pdc_stack.changemaker.id,
             grantee_org_id=grantee_org_id,
         )
-        created = create_permission_grant(api_session, spec=spec)
+        created = create_permission_grant(api_session, grant=spec)
         created_grant_ids.append(created.id)
 
         bundle = list_permission_grants(api_session, count_per_page=200)
@@ -141,7 +141,7 @@ class TestPermissionGrantsLifecycle:
             ],
         )
 
-        created = create_permission_grant(api_session, spec=spec)
+        created = create_permission_grant(api_session, grant=spec)
         assert created.id is not None
         created_grant_ids.append(created.id)
 
@@ -173,7 +173,7 @@ class TestPermissionGrantsLifecycle:
             ),
         )
 
-        created = create_permission_grant(api_session, spec=spec)
+        created = create_permission_grant(api_session, grant=spec)
         created_grant_ids.append(created.id)
 
         assert isinstance(created, ProposalPermissionGrant)
@@ -189,21 +189,23 @@ class TestListFiltering:
 
         match = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=changemaker_b.id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=changemaker_b.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(match.id)
         other_changemaker = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(other_changemaker.id)
         non_changemaker = create_permission_grant(
             api_session,
-            spec=_funder_manage_spec(funder_short_code=seeded_pdc_stack.funder.short_code, grantee_org_id=uuid.uuid4()),
+            grant=_funder_manage_spec(
+                funder_short_code=seeded_pdc_stack.funder.short_code, grantee_org_id=uuid.uuid4()
+            ),
         )
         created_grant_ids.append(non_changemaker.id)
 
-        bundle = list_permission_grants(api_session, changemaker=changemaker_b.id, count_per_page=200)
+        bundle = list_permission_grants(api_session, changemaker_id=changemaker_b.id, count_per_page=200)
 
         returned_ids = {entry.id for entry in bundle.entries}
         assert match.id in returned_ids
@@ -219,21 +221,23 @@ class TestListFiltering:
 
         match = create_permission_grant(
             api_session,
-            spec=_funder_manage_spec(funder_short_code=funder_b.short_code, grantee_org_id=uuid.uuid4()),
+            grant=_funder_manage_spec(funder_short_code=funder_b.short_code, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(match.id)
         other_funder = create_permission_grant(
             api_session,
-            spec=_funder_manage_spec(funder_short_code=seeded_pdc_stack.funder.short_code, grantee_org_id=uuid.uuid4()),
+            grant=_funder_manage_spec(
+                funder_short_code=seeded_pdc_stack.funder.short_code, grantee_org_id=uuid.uuid4()
+            ),
         )
         created_grant_ids.append(other_funder.id)
         non_funder = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(non_funder.id)
 
-        bundle = list_permission_grants(api_session, funder=funder_b.short_code, count_per_page=200)
+        bundle = list_permission_grants(api_session, funder_short_code=funder_b.short_code, count_per_page=200)
 
         returned_ids = {entry.id for entry in bundle.entries}
         assert match.id in returned_ids
@@ -249,21 +253,21 @@ class TestListFiltering:
 
         match = create_permission_grant(
             api_session,
-            spec=_proposal_view_spec(proposal_id=proposal_b.id, grantee_org_id=uuid.uuid4()),
+            grant=_proposal_view_spec(proposal_id=proposal_b.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(match.id)
         other_proposal = create_permission_grant(
             api_session,
-            spec=_proposal_view_spec(proposal_id=seeded_pdc_stack.proposal.id, grantee_org_id=uuid.uuid4()),
+            grant=_proposal_view_spec(proposal_id=seeded_pdc_stack.proposal.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(other_proposal.id)
         non_proposal = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=seeded_pdc_stack.changemaker.id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(non_proposal.id)
 
-        bundle = list_permission_grants(api_session, proposal=proposal_b.id, count_per_page=200)
+        bundle = list_permission_grants(api_session, proposal_id=proposal_b.id, count_per_page=200)
 
         returned_ids = {entry.id for entry in bundle.entries}
         assert match.id in returned_ids
@@ -278,12 +282,12 @@ class TestListFiltering:
         changemaker_id = seeded_pdc_stack.changemaker.id
         manage_grant = create_permission_grant(
             api_session,
-            spec=_changemaker_manage_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_manage_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(manage_grant.id)
         view_grant = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(view_grant.id)
 
@@ -298,7 +302,7 @@ class TestListFiltering:
         changemaker_id = seeded_pdc_stack.changemaker.id
         authenticated_users_grant = create_permission_grant(
             api_session,
-            spec=ChangemakerPermissionGrant(
+            grant=ChangemakerPermissionGrant(
                 changemaker_id=changemaker_id,
                 grantee_type=PermissionGrantGranteeType.AUTHENTICATED_USERS,
                 verbs=[PermissionGrantVerb.VIEW],
@@ -311,7 +315,7 @@ class TestListFiltering:
         created_grant_ids.append(authenticated_users_grant.id)
         user_group_grant = create_permission_grant(
             api_session,
-            spec=_changemaker_view_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
+            grant=_changemaker_view_spec(changemaker_id=changemaker_id, grantee_org_id=uuid.uuid4()),
         )
         created_grant_ids.append(user_group_grant.id)
 

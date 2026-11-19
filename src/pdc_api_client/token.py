@@ -66,6 +66,4 @@ class KeycloakClientCredentialsProvider:
             payload = response.json()
             return payload["access_token"], time.monotonic() + payload["expires_in"]
         except (ValueError, KeyError) as exc:
-            raise TokenRequestError(
-                detail="Malformed token response from auth server", code=response.status_code
-            ) from exc
+            raise TokenRequestError(detail="Malformed token response from PDC auth", code=response.status_code) from exc

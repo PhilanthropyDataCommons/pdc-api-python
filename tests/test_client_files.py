@@ -55,14 +55,15 @@ class TestUploadFileToS3PresignedUrl:
             )
 
 
-def test_download_url_is_the_presigned_url_as_a_plain_string():
-    url = (
-        "https://my-bucket.s3.us-east-1.amazonaws.com/files/report%20%28final%29.pdf"
-        "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&X-Amz-Signature=abc123"
-    )
+class TestFile:
+    def test_keeps_presigned_download_url_as_plain_string(self):
+        url = (
+            "https://my-bucket.s3.us-east-1.amazonaws.com/files/report%20%28final%29.pdf"
+            "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&X-Amz-Signature=abc123"
+        )
 
-    file = File.model_validate({"id": 1, "name": "report (final).pdf", "downloadUrl": url})
+        file = File.model_validate({"id": 1, "name": "report (final).pdf", "downloadUrl": url})
 
-    assert isinstance(file.download_url, str)
-    assert file.download_url == url
-    assert json.loads(json.dumps(file.model_dump()))["download_url"] == url
+        assert isinstance(file.download_url, str)
+        assert file.download_url == url
+        assert json.loads(json.dumps(file.model_dump()))["download_url"] == url

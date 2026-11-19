@@ -59,7 +59,7 @@ class TestApplicationFormInputTypeContract:
             base_field_short_codes=[base_field.short_code],
         )
 
-        form = get_application_form(api_session, form_id=seeded.id)
+        form = get_application_form(api_session, application_form_id=seeded.id)
 
         assert isinstance(form, ChangemakerApplicationForm)
         assert form.fields[0].input_type is None

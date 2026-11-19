@@ -4,6 +4,22 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
+## Unreleased
+
+Breaking changes that make names consistent before a wider release:
+
+- `get_basefields` is now `get_base_fields`, `create_changemaker_proposal` is `create_proposal`, `create_changemaker_proposal_version` is `create_proposal_version`, and `register_file_upload` is `create_file`.
+- `get_application_form` takes `application_form_id` instead of `form_id`.
+- `list_permission_grants` filters by `changemaker_id`, `funder_short_code`, and `proposal_id` instead of `changemaker`, `funder`, and `proposal`.
+- The permission grant create and update functions take `grant` instead of `spec`.
+- `ProposalNotFoundError`, `ChangemakerNotFoundError`, `FunderNotFoundError`, and `ChangemakerFieldValueBatchNotFoundError` now subclass `PDCNotFoundError`, and their `.detail` names the missing resource.
+- Seeding's `ensure_funder_for_kc_org`, `ensure_changemaker_for_kc_org`, and `ensure_data_provider_for_kc_org` are now `ensure_*_for_keycloak_org`, with a `keycloak_org` argument.
+- Seeding drops its own `link_changemaker_to_proposal`; use the client function of the same name.
+
+Other changes:
+
+- `ChangemakerFieldValueBatchNotFoundError` and `TokenRequestError` can be imported from `pdc_api_client`.
+
 ## 0.3.0 (2026-11-18)
 
 - The package is now type checked with mypy (including strict mode), pyrefly, and ty, so its `py.typed` marker is accurate. The testing helpers and seeding modules are fully annotated.

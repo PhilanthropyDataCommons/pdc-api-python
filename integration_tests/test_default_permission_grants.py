@@ -41,7 +41,7 @@ class TestDefaultPermissionGrantsLifecycle:
     def test_create_get_update_delete_roundtrip(self, api_session, created_default_grant_ids):
         spec = _changemaker_view_spec()
 
-        created = create_default_permission_grant(api_session, spec=spec)
+        created = create_default_permission_grant(api_session, grant=spec)
         created_default_grant_ids.append(created.id)
 
         assert created.id is not None
@@ -51,7 +51,7 @@ class TestDefaultPermissionGrantsLifecycle:
         assert get_default_permission_grant(api_session, grant_id=created.id) == created
 
         spec.verbs = [PermissionGrantVerb.VIEW, PermissionGrantVerb.EDIT]
-        updated = update_default_permission_grant(api_session, grant_id=created.id, spec=spec)
+        updated = update_default_permission_grant(api_session, grant_id=created.id, grant=spec)
         assert set(updated.verbs) == {PermissionGrantVerb.VIEW, PermissionGrantVerb.EDIT}
 
         delete_default_permission_grant(api_session, grant_id=created.id)
@@ -61,7 +61,7 @@ class TestDefaultPermissionGrantsLifecycle:
             get_default_permission_grant(api_session, grant_id=created.id)
 
     def test_list_includes_created_grant(self, api_session, created_default_grant_ids):
-        created = create_default_permission_grant(api_session, spec=_changemaker_view_spec())
+        created = create_default_permission_grant(api_session, grant=_changemaker_view_spec())
         created_default_grant_ids.append(created.id)
 
         bundle = list_default_permission_grants(api_session, count_per_page=200)

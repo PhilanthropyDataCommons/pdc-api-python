@@ -7,11 +7,12 @@ import responses
 from pdc_api_client.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
-    create_changemaker_proposal,
-    create_changemaker_proposal_version,
     create_changemaker_source,
+    create_file,
     create_initiative,
     create_initiative_field_value,
+    create_proposal,
+    create_proposal_version,
     get_application_form,
     get_application_form_by_name,
     get_bundle_page,
@@ -21,12 +22,12 @@ from pdc_api_client.client import (
     get_organization_by_keycloak_id,
     get_proposal,
     link_changemaker_to_proposal,
-    register_file_upload,
 )
 from pdc_api_client.errors import (
     ApplicationFormNotFoundError,
     ChangemakerNotFoundError,
     FunderNotFoundError,
+    PDCNotFoundError,
     ProposalNotFoundError,
 )
 from pdc_api_client.models import (
@@ -66,27 +67,36 @@ def _sent_json():
 
 
 class TestGetProposal:
-    def test_404_translates_to_proposal_not_found(self, session, add_proposal_response):
+    def test_raises_proposal_not_found_on_404(self, session, add_proposal_response):
         add_proposal_response(id=999, status=404, payload={})
 
-        with pytest.raises(ProposalNotFoundError):
+        with pytest.raises(ProposalNotFoundError, match="No proposal with id 999") as exc_info:
             get_proposal(session, proposal_id=999)
+
+        assert isinstance(exc_info.value, PDCNotFoundError)
+        assert exc_info.value.code == 404
 
 
 class TestGetChangemaker:
-    def test_404_translates_to_changemaker_not_found(self, session, add_changemaker_response):
+    def test_raises_changemaker_not_found_on_404(self, session, add_changemaker_response):
         add_changemaker_response(id=999, status=404, payload={})
 
-        with pytest.raises(ChangemakerNotFoundError):
+        with pytest.raises(ChangemakerNotFoundError, match="No changemaker with id 999") as exc_info:
             get_changemaker(session, changemaker_id=999)
+
+        assert isinstance(exc_info.value, PDCNotFoundError)
+        assert exc_info.value.code == 404
 
 
 class TestGetFunder:
-    def test_404_translates_to_funder_not_found(self, session, add_funder_response):
+    def test_raises_funder_not_found_on_404(self, session, add_funder_response):
         add_funder_response(short_code="missing", status=404, payload={})
 
-        with pytest.raises(FunderNotFoundError):
+        with pytest.raises(FunderNotFoundError, match="No funder with short code 'missing'") as exc_info:
             get_funder(session, short_code="missing")
+
+        assert isinstance(exc_info.value, PDCNotFoundError)
+        assert exc_info.value.code == 404
 
 
 class TestGetChangemakerProposal:
@@ -102,11 +112,13 @@ class TestGetChangemakerProposal:
         assert isinstance(result, ChangemakerProposal)
         assert result.id == 5
 
-    def test_empty_bundle_translates_to_proposal_not_found(self, session, add_json_response):
+    def test_raises_proposal_not_found_on_empty_bundle(self, session, add_json_response):
         add_json_response(path="changemakerProposals", payload=bundle([]), query_params={"proposal": 100})
 
-        with pytest.raises(ProposalNotFoundError):
+        with pytest.raises(ProposalNotFoundError, match="No changemaker linked to proposal 100") as exc_info:
             get_changemaker_proposal(session, proposal_id=100)
+
+        assert isinstance(exc_info.value, PDCNotFoundError)
 
 
 class TestGetOrganizationByKeycloakId:
@@ -125,7 +137,7 @@ class TestGetApplicationForm:
     def test_requests_form_by_id(self, session, add_application_form_response):
         add_application_form_response(id=7)
 
-        get_application_form(session, form_id=7)
+        get_application_form(session, application_form_id=7)
 
         assert responses.calls[-1].request.path_url == "/applicationForms/7"
 
@@ -140,7 +152,7 @@ class TestGetApplicationFormByName:
 
         assert get_application_form_by_name(session, name="Wanted").id == 2
 
-    def test_raises_not_found_when_no_form_has_the_name(self, session):
+    def test_raises_not_found_on_unknown_name(self, session):
         self._add_forms("Other")
 
         with pytest.raises(ApplicationFormNotFoundError):
@@ -151,7 +163,7 @@ class TestCreateChangemakerProposal:
     def test_sends_data_unchanged(self, session):
         _post("proposals", proposal_payload())
 
-        create_changemaker_proposal(session, data={"opportunityId": 5, "externalId": "ext-1"})
+        create_proposal(session, data={"opportunityId": 5, "externalId": "ext-1"})
 
         assert _sent_json() == {"opportunityId": 5, "externalId": "ext-1"}
 
@@ -166,7 +178,7 @@ class TestCreateChangemakerProposalVersion:
         )
         _post("proposalVersions", proposal_version_payload())
 
-        create_changemaker_proposal_version(session, proposal_version=new_version)
+        create_proposal_version(session, proposal_version=new_version)
 
         assert _sent_json() == {
             "proposalId": 100,
@@ -189,7 +201,7 @@ class TestRegisterFileUpload:
     def test_sends_file_metadata(self, session):
         _post("files", {"id": 3, "name": "doc.pdf"})
 
-        register_file_upload(session, name="doc.pdf", mime_type="application/pdf", size=42)
+        create_file(session, name="doc.pdf", mime_type="application/pdf", size=42)
 
         assert _sent_json() == {"name": "doc.pdf", "mimeType": "application/pdf", "size": 42}
 
