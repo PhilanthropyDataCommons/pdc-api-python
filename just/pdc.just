@@ -1,4 +1,4 @@
-# Runs upstream's CI stack (PDC API, Keycloak, Postgres, S3), refetched from PDC's main branch on every `up`.
+# Runs PDC's CI stack (PDC API, Keycloak, Postgres, S3), refetched from PDC's main branch on every `up`.
 
 set working-directory := '..'
 
@@ -9,7 +9,7 @@ compose := 'docker compose -f ' + cache + '/compose-ci.yml'
 _default:
     @just --list pdc --unsorted
 
-# Fetch upstream's compose file and Keycloak realm
+# Fetch PDC's compose file and Keycloak realm
 fetch:
     mkdir -p {{cache}}/keycloak
     curl -fsSL {{base}}/compose-ci.yml -o {{cache}}/compose-ci.yml
@@ -21,13 +21,13 @@ up: fetch
     {{compose}} up -d --wait
 
 # Follow the stack's logs
-logs: fetch
+logs:
     {{compose}} logs -f
 
 # Stop the stack, keeping its data
-down: fetch
+down:
     {{compose}} down --remove-orphans
 
 # Stop the stack and delete its data
-reset: fetch
+reset:
     {{compose}} down --remove-orphans --volumes

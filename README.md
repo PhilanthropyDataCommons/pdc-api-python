@@ -77,7 +77,7 @@ PDC applies the caller's permissions to every request. The same call can return 
 
 There are two ways to read a list.
 
-**Iterate everything.** `get_changemakers`, `get_funders`, `get_proposals`, `get_initiatives`, and the other `get_*` list functions are generators that walk every page for you:
+**Iterate everything.** `get_changemakers`, `get_funders`, `get_proposals`, `get_initiatives`, and the other plural `get_*` functions are generators that walk every page for you. The exception is `get_base_fields`, which returns a list:
 
 ```python
 from pdc_api_client.client import get_changemaker_proposals
@@ -103,11 +103,11 @@ Bundles for nested endpoints take path parameters, such as `get_bundle_page(sess
 The client covers the writes a proposal workflow needs: creating a proposal, adding a version with field values, linking a changemaker to it, and uploading files.
 
 ```python
-from pdc_api_client.client import create_changemaker_proposal, create_changemaker_proposal_version
+from pdc_api_client.client import create_proposal, create_proposal_version
 from pdc_api_client.models import NewProposalFieldValue, NewProposalVersion
 
-proposal = create_changemaker_proposal(session, data={"opportunityId": 5, "externalId": "app-2026-001"})
-version = create_changemaker_proposal_version(
+proposal = create_proposal(session, data={"opportunityId": 5, "externalId": "app-2026-001"})
+version = create_proposal_version(
     session,
     proposal_version=NewProposalVersion(
         proposal_id=proposal.id,
@@ -122,7 +122,7 @@ A changemaker can also write its own profile values. `create_changemaker_source`
 
 `create_initiative` creates an initiative led by a changemaker, and `create_initiative_field_value` adds a value to it from a given source.
 
-Uploading a file takes two steps. `register_file_upload` creates the file record and returns a presigned S3 POST, and `upload_file_to_s3_presigned_url` sends the bytes to it.
+Uploading a file takes two steps. `create_file` creates the file record and returns a presigned S3 POST, and `upload_file_to_s3_presigned_url` sends the bytes to it.
 
 ## Permission grants
 
@@ -134,7 +134,7 @@ from pdc_api_client.permission_grants import ChangemakerPermissionGrant, create_
 
 grant = create_permission_grant(
     session,
-    spec=ChangemakerPermissionGrant(
+    grant=ChangemakerPermissionGrant(
         changemaker_id=7,
         grantee_type=PermissionGrantGranteeType.USER_GROUP,
         grantee_keycloak_organization_id="1f0c6e2a-7d4b-4c55-9a51-0d8c2f0b6a11",
@@ -143,14 +143,14 @@ grant = create_permission_grant(
     ),
 )
 
-page = list_permission_grants(session, changemaker=7, verb=PermissionGrantVerb.VIEW)
+page = list_permission_grants(session, changemaker_id=7, verb=PermissionGrantVerb.VIEW)
 ```
 
 The models check that the grantee fields match `grantee_type` before anything is sent. Create, get, update, and delete functions exist for grants and for default permission grants. A default permission grant has no context entity; PDC copies it into a real grant on each new entity of its type as that entity is created.
 
 ## Errors
 
-`APISession` raises a subclass of `pdc_api_client.PDCException` for every failed request. Each exception has `.code` (the HTTP status) and `.detail` (the parsed JSON body, or the raw text when the body isn't JSON).
+`APISession` raises a subclass of `pdc_api_client.PDCException` for every failed request. Each exception has `.code` (the HTTP status) and `.detail` (the parsed JSON body, or the raw text when the body isn't JSON). Before raising, it retries a GET or HEAD up to three times on a 502, 503, or 504 or a dropped connection.
 
 | Status        | Exception                     |
 | ------------- | ----------------------------- |
@@ -163,7 +163,15 @@ The models check that the grantee fields match `grantee_type` before anything is
 | 5xx, timeout, or connection failure | `PDCServiceError` |
 | Any other non-2xx | `PDCException`            |
 
-A few lookups turn a 404 into an error named for the resource: `get_proposal` and `get_changemaker_proposal` raise `ProposalNotFoundError`, `get_changemaker` raises `ChangemakerNotFoundError`, `get_funder` raises `FunderNotFoundError`, `get_changemaker_field_value_batch` raises `ChangemakerFieldValueBatchNotFoundError`, and `get_application_form_by_name` raises `ApplicationFormNotFoundError`, a `PDCNotFoundError`, when no form has that name. `KeycloakClientCredentialsProvider` raises `TokenRequestError` when Keycloak rejects the grant.
+A few lookups raise a subclass of `PDCNotFoundError` named for the resource:
+
+- `get_proposal` and `get_changemaker_proposal` raise `ProposalNotFoundError`.
+- `get_changemaker` raises `ChangemakerNotFoundError`.
+- `get_funder` raises `FunderNotFoundError`.
+- `get_changemaker_field_value_batch` raises `ChangemakerFieldValueBatchNotFoundError`.
+- `get_application_form_by_name` raises `ApplicationFormNotFoundError` when no form has that name.
+
+`KeycloakClientCredentialsProvider` raises `TokenRequestError` when Keycloak rejects the grant.
 
 ## Models
 
@@ -177,8 +185,8 @@ The spec doesn't always match what PDC returns. Some fields it marks required ar
 
 The client covers most of the API but not all of it:
 
-- **No client functions:** `/applicationFormFields`, `/sources`, `/tasks` (bulk uploads and base field copies), `/terminologySets`, and `/users`. Their models are generated, and `session.get`/`session.post` reach any endpoint directly.
-- **Writes outside the proposal workflow:** creating funders, changemakers, opportunities, sources, and the like exists only as seeding helpers in `pdc_api_client.seeding`, which aren't meant for production data.
+- **No client functions:** `/applicationFormFields`, `/sources` (apart from `create_changemaker_source`), `/tasks` (bulk uploads and base field copies), `/terminologySets`, and `/users`. Their models are generated, and `session.get`/`session.post` reach any endpoint directly.
+- **Other writes:** creating funders, changemakers, opportunities, and funder or data-provider sources is possible only through the seeding helpers in `pdc_api_client.seeding`, which aren't meant for production data.
 - **Async:** the client is synchronous and built on `requests`.
 
 Issues and pull requests that fill these gaps are welcome.

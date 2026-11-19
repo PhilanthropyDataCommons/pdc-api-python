@@ -26,19 +26,24 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.55.0" # Keep in sync with minimum-version in justfile
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-suffix: lint
       - name: Check the lockfile is up to date
         run: uv lock --check
-      - run: just lint
-      - run: uv build
+      - name: Lint and check formatting
+        run: just lint
+      - name: Build the package
+        run: uv build
       - name: Check generated models match the spec
         run: |
           just codegen
@@ -50,14 +55,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+      - name: Audit the workflows with zizmor
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           advanced-security: false
 
-  test:
+  unit-tests-and-type-checks:
     name: Unit tests and type checks (Python ${{ matrix.python }}${{ matrix.lowest_direct && ', lowest direct dependencies' || '' }})
     runs-on: ubuntu-latest
     permissions:
@@ -70,21 +77,26 @@ jobs:
             lowest_direct: true
           - python: "3.14"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.55.0" # Keep in sync with minimum-version in justfile
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-suffix: tests-py${{ matrix.python }}${{ matrix.lowest_direct && '-lowest-direct' || '' }}
-      - run: just test --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct} ${UPGRADE:+--upgrade}
+      - name: Run the unit tests
+        run: just test --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct} ${UPGRADE:+--upgrade}
         env:
           PYTHON: ${{ matrix.python }}
           LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
-      - run: just typecheck --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct}
+      - name: Run the type checks
+        run: just typecheck --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct}
         if: ${{ !cancelled() }}
         env:
           PYTHON: ${{ matrix.python }}
@@ -96,10 +108,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out the PDC service repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           repository: PhilanthropyDataCommons/service
@@ -110,13 +124,16 @@ jobs:
         working-directory: service
         run: docker compose -f compose-ci.yml up -d --wait
         timeout-minutes: 5
-      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.55.0" # Keep in sync with minimum-version in justfile
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-suffix: integration
-      - run: just integration ${UPGRADE:+--upgrade}
+      - name: Run the integration tests
+        run: just integration ${UPGRADE:+--upgrade}
         timeout-minutes: 5
         env:
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}
@@ -124,22 +141,24 @@ jobs:
   all-green:
     name: All green
     if: always()
-    needs: [lint, zizmor, test, integration]
+    needs: [lint, zizmor, unit-tests-and-type-checks, integration]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+      - name: Check that every required job passed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
 
   notify:
     name: Notify failed build
-    needs: [lint, zizmor, test, integration]
+    needs: [lint, zizmor, unit-tests-and-type-checks, integration]
     if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
-      - uses: drivendataorg/failed-build-issue-action@940568ce50eeef3f31a920614cefcc6102d2f930 # v1.3.0
+      - name: Open an issue for the failed build
+        uses: drivendataorg/failed-build-issue-action@940568ce50eeef3f31a920614cefcc6102d2f930 # v1.3.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

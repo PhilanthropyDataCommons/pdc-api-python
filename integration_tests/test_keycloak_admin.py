@@ -1,22 +1,11 @@
-import uuid
-
-import pytest
-
 from pdc_api_client.seeding.keycloak_admin import KeycloakOrganization, KeycloakUser
 
-TEST_USER_PASSWORD = "integration-test-password"
 
-
-@pytest.fixture
-def suffix() -> str:
-    return uuid.uuid4().hex[:8]
-
-
-class TestOrganizations:
-    def test_ensure_organization_creates_then_finds_existing(self, keycloak_admin, suffix):
-        alias = f"pkg-org-{suffix}"
+class TestEnsureOrganization:
+    def test_creates_then_finds_existing(self, keycloak_admin, suffix):
+        alias = f"keycloak-admin-test-org-{suffix}"
         created = keycloak_admin.ensure_organization(
-            name=f"Pkg Org {suffix}", alias=alias, domain=f"{alias}.example.com"
+            name=f"Keycloak Admin Test Org {suffix}", alias=alias, domain=f"{alias}.example.com"
         )
         assert isinstance(created, KeycloakOrganization)
         assert created.alias == alias
@@ -24,36 +13,40 @@ class TestOrganizations:
         again = keycloak_admin.ensure_organization(name="ignored", alias=alias, domain=f"{alias}.example.com")
         assert again.id == created.id
 
-    def test_get_organization_returns_existing_and_none(self, keycloak_admin, suffix):
-        alias = f"pkg-getorg-{suffix}"
+
+class TestGetOrganization:
+    def test_returns_existing_and_none(self, keycloak_admin, suffix):
+        alias = f"keycloak-admin-test-get-org-{suffix}"
         assert keycloak_admin.get_organization(alias=alias) is None
 
         created = keycloak_admin.ensure_organization(
-            name=f"Pkg Get {suffix}", alias=alias, domain=f"{alias}.example.com"
+            name=f"Keycloak Admin Test Get Org {suffix}", alias=alias, domain=f"{alias}.example.com"
         )
         found = keycloak_admin.get_organization(alias=alias)
         assert found is not None
         assert found.id == created.id
 
 
-class TestUsers:
-    def test_ensure_user_creates_then_finds_existing(self, keycloak_admin, suffix):
+class TestEnsureUser:
+    def test_creates_then_finds_existing(self, keycloak_admin, suffix, test_user_password):
         # registrationEmailAsUsername=true on the realm, so username == email.
-        email = f"pkg-user-{suffix}@example.com"
-        created = keycloak_admin.ensure_user(username=email, email=email, password=TEST_USER_PASSWORD)
+        email = f"keycloak-admin-test-user-{suffix}@example.com"
+        created = keycloak_admin.ensure_user(username=email, email=email, password=test_user_password)
         assert isinstance(created, KeycloakUser)
         assert created.id
 
-        again = keycloak_admin.ensure_user(username=email, email=email, password=TEST_USER_PASSWORD)
+        again = keycloak_admin.ensure_user(username=email, email=email, password=test_user_password)
         assert again.id == created.id
 
 
-class TestMemberships:
-    def test_add_is_idempotent_and_remove_reports_change(self, keycloak_admin, suffix):
-        alias = f"pkg-mem-{suffix}"
-        org = keycloak_admin.ensure_organization(name=f"Pkg Mem {suffix}", alias=alias, domain=f"{alias}.example.com")
-        email = f"pkg-mem-user-{suffix}@example.com"
-        user = keycloak_admin.ensure_user(username=email, email=email, password=TEST_USER_PASSWORD)
+class TestUserOrganizationMembership:
+    def test_add_is_idempotent_and_remove_reports_change(self, keycloak_admin, suffix, test_user_password):
+        alias = f"keycloak-admin-test-membership-org-{suffix}"
+        org = keycloak_admin.ensure_organization(
+            name=f"Keycloak Admin Test Membership Org {suffix}", alias=alias, domain=f"{alias}.example.com"
+        )
+        email = f"keycloak-admin-test-member-{suffix}@example.com"
+        user = keycloak_admin.ensure_user(username=email, email=email, password=test_user_password)
 
         assert keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id) is True
         assert keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id) is False
@@ -62,10 +55,10 @@ class TestMemberships:
         assert keycloak_admin.remove_user_from_organization(organization_id=org.id, user_id=user.id) is False
 
 
-class TestClientConfig:
-    def test_ensure_oidc_login_enabled_merges_redirect_uri(self, keycloak_admin, keycloak_client_id):
+class TestEnsureOidcLoginEnabled:
+    def test_merges_redirect_uri(self, keycloak_admin, keycloak_client_id):
         # A fixed URI keeps repeated runs on a persistent stack from growing redirectUris.
-        uri = "http://localhost:8000/pkg-integration-test/callback"
+        uri = "http://localhost:8000/keycloak-admin-test/callback"
         keycloak_admin.ensure_oidc_login_enabled(client_id=keycloak_client_id, redirect_uris=[uri])
 
         client = keycloak_admin._find_client(keycloak_client_id)
@@ -75,18 +68,28 @@ class TestClientConfig:
         keycloak_admin.ensure_oidc_login_enabled(client_id=keycloak_client_id, redirect_uris=[uri])
         assert uri in keycloak_admin._find_client(keycloak_client_id).get("redirectUris", [])
 
-    def test_ensure_client_secret_sets_and_is_idempotent(self, keycloak_admin, keycloak_client_id):
+
+class TestEnsureClientSecret:
+    def test_sets_and_is_idempotent(self, keycloak_admin, keycloak_client_id):
         # The shared session fixtures authenticate with the original secret.
         target = keycloak_admin._find_client(keycloak_client_id)
         original = keycloak_admin._admin.get_client_secrets(target["id"])["value"]
         try:
-            assert keycloak_admin.ensure_client_secret(client_id=keycloak_client_id, secret="pkg-int-secret") is True
-            assert keycloak_admin._admin.get_client_secrets(target["id"])["value"] == "pkg-int-secret"
-            assert keycloak_admin.ensure_client_secret(client_id=keycloak_client_id, secret="pkg-int-secret") is False
+            assert (
+                keycloak_admin.ensure_client_secret(client_id=keycloak_client_id, secret="keycloak-admin-test-secret")
+                is True
+            )
+            assert keycloak_admin._admin.get_client_secrets(target["id"])["value"] == "keycloak-admin-test-secret"
+            assert (
+                keycloak_admin.ensure_client_secret(client_id=keycloak_client_id, secret="keycloak-admin-test-secret")
+                is False
+            )
         finally:
             keycloak_admin.ensure_client_secret(client_id=keycloak_client_id, secret=original)
 
-    def test_direct_grants_enable_is_idempotent(self, keycloak_admin, keycloak_client_id):
+
+class TestEnsureDirectGrantsEnabled:
+    def test_is_idempotent(self, keycloak_admin, keycloak_client_id):
         keycloak_admin.set_direct_grants_enabled(client_id=keycloak_client_id, enabled=False)
         assert keycloak_admin.is_direct_grants_enabled(client_id=keycloak_client_id) is False
 
