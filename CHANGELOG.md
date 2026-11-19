@@ -8,6 +8,7 @@ PDC does not bump its spec version for every API change, so each entry names the
 
 Breaking changes that make names consistent before a wider release:
 
+- The distribution is now `pdc-api` (was `pdc-python-client`), the import name is `pdc_api` (was `pdc_api_client`), and the repository is `PhilanthropyDataCommons/pdc-api-python`.
 - `get_basefields` is now `get_base_fields`, `create_changemaker_proposal` is `create_proposal`, `create_changemaker_proposal_version` is `create_proposal_version`, and `register_file_upload` is `create_file`.
 - `get_application_form` takes `application_form_id` instead of `form_id`.
 - `list_permission_grants` filters by `changemaker_id`, `funder_short_code`, and `proposal_id` instead of `changemaker`, `funder`, and `proposal`.
@@ -18,7 +19,7 @@ Breaking changes that make names consistent before a wider release:
 
 Other changes:
 
-- `ChangemakerFieldValueBatchNotFoundError` and `TokenRequestError` can be imported from `pdc_api_client`.
+- `ChangemakerFieldValueBatchNotFoundError` and `TokenRequestError` can be imported from `pdc_api`.
 
 ## 0.3.0 (2026-11-18)
 

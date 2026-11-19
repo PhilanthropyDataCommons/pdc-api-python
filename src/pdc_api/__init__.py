@@ -1,4 +1,4 @@
-from pdc_api_client.errors import (
+from pdc_api.errors import (
     ApplicationFormNotFoundError,
     ChangemakerFieldValueBatchNotFoundError,
     ChangemakerNotFoundError,
@@ -14,8 +14,8 @@ from pdc_api_client.errors import (
     ProposalNotFoundError,
     TokenRequestError,
 )
-from pdc_api_client.token import TokenProvider
-from pdc_api_client.transport import APISession
+from pdc_api.token import TokenProvider
+from pdc_api.transport import APISession
 
 __all__ = [
     "APISession",

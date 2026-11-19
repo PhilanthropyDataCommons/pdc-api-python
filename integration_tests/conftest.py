@@ -4,17 +4,17 @@ import uuid
 import pytest
 import requests
 
-from pdc_api_client.models import FunderCollaborativeMemberBundle
-from pdc_api_client.seeding.keycloak_admin import KeycloakAdmin
-from pdc_api_client.seeding.pdc_entities import (
+from pdc_api.models import FunderCollaborativeMemberBundle
+from pdc_api.seeding.keycloak_admin import KeycloakAdmin
+from pdc_api.seeding.pdc_entities import (
     SeededFunderCollaborative,
     SeededProposalBundle,
     seed_funder_collaborative_with_members,
     seed_proposal_bundle,
     seed_proposal_corpus,
 )
-from pdc_api_client.token import KeycloakClientCredentialsProvider
-from pdc_api_client.transport import APISession
+from pdc_api.token import KeycloakClientCredentialsProvider
+from pdc_api.transport import APISession
 
 PDC_API_URL = os.environ.get("PDC_API_URL", "http://localhost:3030")
 KEYCLOAK_SERVER_URL = os.environ.get("KEYCLOAK_SERVER_URL", "http://pdc-auth:8780")

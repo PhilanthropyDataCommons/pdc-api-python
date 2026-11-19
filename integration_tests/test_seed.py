@@ -1,5 +1,5 @@
-from pdc_api_client.client import get_changemaker_proposals
-from pdc_api_client.seeding.pdc_entities import (
+from pdc_api.client import get_changemaker_proposals
+from pdc_api.seeding.pdc_entities import (
     SeededChangemakerWithProposals,
     SeededProposalBundle,
     seed_application_form,

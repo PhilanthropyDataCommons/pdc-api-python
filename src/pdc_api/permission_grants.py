@@ -4,15 +4,15 @@ from uuid import UUID
 
 from pydantic import Field, TypeAdapter, field_validator, model_validator
 
-from pdc_api_client.client import get_bundle_page
-from pdc_api_client.models import (
+from pdc_api.client import get_bundle_page
+from pdc_api.models import (
     BaseFieldCategory,
     BaseSchema,
     PermissionGrantEntityType,
     PermissionGrantGranteeType,
     PermissionGrantVerb,
 )
-from pdc_api_client.transport import APISession
+from pdc_api.transport import APISession
 
 _ENDPOINT = "permissionGrants"
 _DEFAULT_ENDPOINT = "defaultPermissionGrants"

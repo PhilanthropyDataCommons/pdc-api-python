@@ -2,8 +2,8 @@ import uuid
 
 import pytest
 
-from pdc_api_client.errors import PDCNotFoundError
-from pdc_api_client.permission_grants import (
+from pdc_api.errors import PDCNotFoundError
+from pdc_api.permission_grants import (
     DefaultPermissionGrant,
     PermissionGrantEntityType,
     PermissionGrantGranteeType,

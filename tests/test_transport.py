@@ -3,7 +3,7 @@ import requests
 import responses
 from conftest import BASE_URL, FakeTokenProvider
 
-from pdc_api_client.errors import (
+from pdc_api.errors import (
     PDCBadRequestError,
     PDCConflictError,
     PDCException,
@@ -13,7 +13,7 @@ from pdc_api_client.errors import (
     PDCUnauthorizedError,
     PDCUnprocessableEntityError,
 )
-from pdc_api_client.transport import APISession
+from pdc_api.transport import APISession
 
 URL = f"{BASE_URL}test-endpoint"
 

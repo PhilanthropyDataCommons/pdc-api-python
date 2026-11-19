@@ -1,6 +1,6 @@
-from pdc_api_client.client import get_changemaker, get_organization_by_keycloak_id
-from pdc_api_client.models import Source
-from pdc_api_client.seeding.pdc_entities import (
+from pdc_api.client import get_changemaker, get_organization_by_keycloak_id
+from pdc_api.models import Source
+from pdc_api.seeding.pdc_entities import (
     seed_changemaker,
     seed_fiscal_sponsorship,
     seed_funder,

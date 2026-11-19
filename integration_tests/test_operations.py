@@ -5,7 +5,7 @@ from http import HTTPStatus
 import pytest
 import requests
 
-from pdc_api_client.client import (
+from pdc_api.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
     create_changemaker_source,
@@ -32,8 +32,8 @@ from pdc_api_client.client import (
     get_proposals,
     link_changemaker_to_proposal,
 )
-from pdc_api_client.errors import PDCNotFoundError, ProposalNotFoundError
-from pdc_api_client.models import (
+from pdc_api.errors import PDCNotFoundError, ProposalNotFoundError
+from pdc_api.models import (
     BaseField,
     Changemaker,
     ChangemakerApplicationForm,
@@ -53,7 +53,7 @@ from pdc_api_client.models import (
     Proposal,
     ProposalBundle,
 )
-from pdc_api_client.seeding.pdc_entities import (
+from pdc_api.seeding.pdc_entities import (
     seed_application_form,
     seed_base_field,
     seed_changemaker,

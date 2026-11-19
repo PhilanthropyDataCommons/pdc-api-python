@@ -5,7 +5,7 @@ from typing import Any
 import requests
 from faker import Faker
 
-from pdc_api_client.client import (
+from pdc_api.client import (
     create_changemaker_field_value,
     create_changemaker_field_value_batch,
     create_changemaker_source,
@@ -16,8 +16,8 @@ from pdc_api_client.client import (
     get_organization_by_keycloak_id,
     link_changemaker_to_proposal,
 )
-from pdc_api_client.errors import PDCNotFoundError
-from pdc_api_client.models import (
+from pdc_api.errors import PDCNotFoundError
+from pdc_api.models import (
     BaseField,
     ChangemakerBundle,
     ChangemakerFieldValue,
@@ -33,8 +33,8 @@ from pdc_api_client.models import (
     ShallowChangemaker,
     Source,
 )
-from pdc_api_client.seeding.keycloak_admin import KeycloakOrganization
-from pdc_api_client.transport import APISession
+from pdc_api.seeding.keycloak_admin import KeycloakOrganization
+from pdc_api.transport import APISession
 
 fake = Faker()
 

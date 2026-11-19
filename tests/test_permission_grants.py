@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pytest
 
-from pdc_api_client.permission_grants import (
+from pdc_api.permission_grants import (
     ChangemakerPermissionGrant,
     DefaultPermissionGrant,
     InitiativeFieldValuePermissionGrant,
@@ -16,7 +16,7 @@ from pdc_api_client.permission_grants import (
     _grant_to_payload,
     list_permission_grants,
 )
-from pdc_api_client.testing import bundle
+from pdc_api.testing import bundle
 
 ORG_UUID = UUID("00000000-0000-0000-0000-000000000001")
 USER_UUID = UUID("00000000-0000-0000-0000-000000000002")

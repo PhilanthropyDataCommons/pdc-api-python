@@ -3,8 +3,8 @@ from functools import partial
 import pytest
 import responses
 
-from pdc_api_client import testing as pdc_testing
-from pdc_api_client.transport import APISession
+from pdc_api import testing as pdc_testing
+from pdc_api.transport import APISession
 
 BASE_URL = "https://pdc.test/"
 

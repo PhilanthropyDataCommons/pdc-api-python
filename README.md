@@ -1,10 +1,10 @@
-# pdc-python-client
+# pdc-api-python
 
 A Python client for the [Philanthropy Data Commons](https://philanthropydatacommons.org) (PDC) API.
 
 PDC is an access-controlled service where changemakers and funders share funding proposals and organization data. A changemaker can submit a proposal once and share it with any funder it chooses, and the data owner decides who sees what. This package wraps the [PDC API](https://api.philanthropydatacommons.org/) in typed Pydantic models, handles pagination, and raises one exception class per HTTP error. It doesn't depend on any web framework.
 
-Install it as `pdc-python-client` and import it as `pdc_api_client`.
+Install it as `pdc-api` and import it as `pdc_api`.
 
 > **Status:** alpha. The API may change between minor versions until 1.0.
 
@@ -13,13 +13,13 @@ Install it as `pdc-python-client` and import it as `pdc_api_client`.
 The package is not on PyPI yet. Install it from a tagged release on GitHub:
 
 ```bash
-pip install "pdc-python-client @ git+https://github.com/PhilanthropyDataCommons/pdc-python-client@v0.3.0"
+pip install "pdc-api @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.3.0"
 ```
 
 or with uv:
 
 ```bash
-uv add git+https://github.com/PhilanthropyDataCommons/pdc-python-client --tag v0.3.0
+uv add git+https://github.com/PhilanthropyDataCommons/pdc-api-python --tag v0.3.0
 ```
 
 Two optional extras add test and seeding helpers:
@@ -27,16 +27,16 @@ Two optional extras add test and seeding helpers:
 - **`testing`:** helpers for mocking PDC responses in your own tests, built on [`responses`](https://github.com/getsentry/responses).
 - **`seeding`:** helpers for creating PDC and Keycloak test data, built on [`python-keycloak`](https://github.com/marcospereirampj/python-keycloak) and [Faker](https://github.com/joke2k/faker).
 
-Add them to the requirement, as in `"pdc-python-client[testing,seeding] @ git+https://github.com/PhilanthropyDataCommons/pdc-python-client@v0.3.0"`.
+Add them to the requirement, as in `"pdc-api[testing,seeding] @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.3.0"`.
 
 Python 3.12 or later is required.
 
 ## Quickstart
 
 ```python
-from pdc_api_client import APISession
-from pdc_api_client.client import get_changemakers, get_proposal
-from pdc_api_client.token import KeycloakClientCredentialsProvider
+from pdc_api import APISession
+from pdc_api.client import get_changemakers, get_proposal
+from pdc_api.token import KeycloakClientCredentialsProvider
 
 session = APISession(
     base_url="https://api.philanthropydatacommons.org/",
@@ -55,7 +55,7 @@ for changemaker in get_changemakers(session):
 proposal = get_proposal(session, proposal_id=42)
 ```
 
-Every response is parsed into a model from `pdc_api_client.models`, with snake_case attributes over PDC's camelCase fields.
+Every response is parsed into a model from `pdc_api.models`, with snake_case attributes over PDC's camelCase fields.
 
 ## Authentication
 
@@ -80,7 +80,7 @@ There are two ways to read a list.
 **Iterate everything.** `get_changemakers`, `get_funders`, `get_proposals`, `get_initiatives`, and the other plural `get_*` functions are generators that walk every page for you. The exception is `get_base_fields`, which returns a list:
 
 ```python
-from pdc_api_client.client import get_changemaker_proposals
+from pdc_api.client import get_changemaker_proposals
 
 for link in get_changemaker_proposals(session, changemaker_id=7):
     print(link.proposal_id)
@@ -89,8 +89,8 @@ for link in get_changemaker_proposals(session, changemaker_id=7):
 **Fetch one page.** `get_bundle_page` returns a single page as a bundle, which is what a paginated UI needs. It takes the bundle type, a page number, an optional page size, and an optional search string:
 
 ```python
-from pdc_api_client.client import get_bundle_page
-from pdc_api_client.models import FunderBundle
+from pdc_api.client import get_bundle_page
+from pdc_api.models import FunderBundle
 
 page = get_bundle_page(session, FunderBundle, page=2, count_per_page=25, content="climate")
 print(page.total, [funder.name for funder in page.entries])
@@ -103,8 +103,8 @@ Bundles for nested endpoints take path parameters, such as `get_bundle_page(sess
 The client covers the writes a proposal workflow needs: creating a proposal, adding a version with field values, linking a changemaker to it, and uploading files.
 
 ```python
-from pdc_api_client.client import create_proposal, create_proposal_version
-from pdc_api_client.models import NewProposalFieldValue, NewProposalVersion
+from pdc_api.client import create_proposal, create_proposal_version
+from pdc_api.models import NewProposalFieldValue, NewProposalVersion
 
 proposal = create_proposal(session, data={"opportunityId": 5, "externalId": "app-2026-001"})
 version = create_proposal_version(
@@ -126,11 +126,11 @@ Uploading a file takes two steps. `create_file` creates the file record and retu
 
 ## Permission grants
 
-PDC controls access with permission grants. Each grant gives a grantee (a user, a Keycloak organization, or every authenticated user) a set of verbs (such as `view` or `edit`) over a set of scopes, in the context of one entity such as a changemaker or a proposal. `pdc_api_client.permission_grants` models each context as its own class, so a grant parses into, say, `ChangemakerPermissionGrant` with a typed `changemaker_id`:
+PDC controls access with permission grants. Each grant gives a grantee (a user, a Keycloak organization, or every authenticated user) a set of verbs (such as `view` or `edit`) over a set of scopes, in the context of one entity such as a changemaker or a proposal. `pdc_api.permission_grants` models each context as its own class, so a grant parses into, say, `ChangemakerPermissionGrant` with a typed `changemaker_id`:
 
 ```python
-from pdc_api_client.models import PermissionGrantEntityType, PermissionGrantGranteeType, PermissionGrantVerb
-from pdc_api_client.permission_grants import ChangemakerPermissionGrant, create_permission_grant, list_permission_grants
+from pdc_api.models import PermissionGrantEntityType, PermissionGrantGranteeType, PermissionGrantVerb
+from pdc_api.permission_grants import ChangemakerPermissionGrant, create_permission_grant, list_permission_grants
 
 grant = create_permission_grant(
     session,
@@ -150,7 +150,7 @@ The models check that the grantee fields match `grantee_type` before anything is
 
 ## Errors
 
-`APISession` raises a subclass of `pdc_api_client.PDCException` for every failed request. Each exception has `.code` (the HTTP status) and `.detail` (the parsed JSON body, or the raw text when the body isn't JSON). Before raising, it retries a GET or HEAD up to three times on a 502, 503, or 504 or a dropped connection.
+`APISession` raises a subclass of `pdc_api.PDCException` for every failed request. Each exception has `.code` (the HTTP status) and `.detail` (the parsed JSON body, or the raw text when the body isn't JSON). Before raising, it retries a GET or HEAD up to three times on a 502, 503, or 504 or a dropped connection.
 
 | Status        | Exception                     |
 | ------------- | ----------------------------- |
@@ -175,7 +175,7 @@ A few lookups raise a subclass of `PDCNotFoundError` named for the resource:
 
 ## Models
 
-Most models are generated from PDC's OpenAPI spec, which is pinned in `src/pdc_api_client/openapi.json`. Import them from `pdc_api_client.models`; `pdc_api_client._generated` is an implementation detail.
+Most models are generated from PDC's OpenAPI spec, which is pinned in `src/pdc_api/openapi.json`. Import them from `pdc_api.models`; `pdc_api._generated` is an implementation detail.
 
 The models ignore fields they don't declare. When PDC adds a field to a response, parsing keeps working, and the new field appears once the models are regenerated.
 
@@ -186,21 +186,21 @@ The spec doesn't always match what PDC returns. Some fields it marks required ar
 The client covers most of the API but not all of it:
 
 - **No client functions:** `/applicationFormFields`, `/sources` (apart from `create_changemaker_source`), `/tasks` (bulk uploads and base field copies), `/terminologySets`, and `/users`. Their models are generated, and `session.get`/`session.post` reach any endpoint directly.
-- **Other writes:** creating funders, changemakers, opportunities, and funder or data-provider sources is possible only through the seeding helpers in `pdc_api_client.seeding`, which aren't meant for production data.
+- **Other writes:** creating funders, changemakers, opportunities, and funder or data-provider sources is possible only through the seeding helpers in `pdc_api.seeding`, which aren't meant for production data.
 - **Async:** the client is synchronous and built on `requests`.
 
 Issues and pull requests that fill these gaps are welcome.
 
 ## Testing your code
 
-`pdc_api_client.testing` (extra: `testing`) registers mocked PDC responses with `responses`. It has payload builders that return valid response bodies, and `add_*_response` functions that register them for a base URL:
+`pdc_api.testing` (extra: `testing`) registers mocked PDC responses with `responses`. It has payload builders that return valid response bodies, and `add_*_response` functions that register them for a base URL:
 
 ```python
 import responses
 
-from pdc_api_client import APISession, testing
-from pdc_api_client.client import get_bundle_page
-from pdc_api_client.models import ChangemakerBundle
+from pdc_api import APISession, testing
+from pdc_api.client import get_bundle_page
+from pdc_api.models import ChangemakerBundle
 
 BASE_URL = "https://pdc.test/"
 
@@ -229,10 +229,10 @@ def test_lists_changemakers():
 
 ## Seeding a PDC stack
 
-`pdc_api_client.seeding` (extra: `seeding`) creates realistic data on a PDC stack through the public PDC API and the Keycloak admin API. It is for local development and integration tests, not production:
+`pdc_api.seeding` (extra: `seeding`) creates realistic data on a PDC stack through the public PDC API and the Keycloak admin API. It is for local development and integration tests, not production:
 
-- **`pdc_api_client.seeding.pdc_entities`:** `seed_*` functions for funders, collaboratives, changemakers, fiscal sponsorships, data providers, opportunities, application forms, proposals, initiatives, and field values. `seed_proposal_bundle` creates a full proposal and everything it depends on in one call.
-- **`pdc_api_client.seeding.keycloak_admin`:** `KeycloakAdmin`, whose `ensure_*` methods create Keycloak organizations, users, memberships, and realm roles only if they don't already exist, so re-running a seed script is safe.
+- **`pdc_api.seeding.pdc_entities`:** `seed_*` functions for funders, collaboratives, changemakers, fiscal sponsorships, data providers, opportunities, application forms, proposals, initiatives, and field values. `seed_proposal_bundle` creates a full proposal and everything it depends on in one call.
+- **`pdc_api.seeding.keycloak_admin`:** `KeycloakAdmin`, whose `ensure_*` methods create Keycloak organizations, users, memberships, and realm roles only if they don't already exist, so re-running a seed script is safe.
 
 ## Contributing
 

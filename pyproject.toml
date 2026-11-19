@@ -1,5 +1,5 @@
 [project]
-name = "pdc-python-client"
+name = "pdc-api"
 version = "0.3.0"
 description = "Python client for the Philanthropy Data Commons (PDC) API"
 readme = "README.md"
@@ -30,9 +30,9 @@ testing = ["responses>=0.23"]
 seeding = ["faker>=26", "python-keycloak>=6"]
 
 [project.urls]
-Repository = "https://github.com/PhilanthropyDataCommons/pdc-python-client"
-Issues = "https://github.com/PhilanthropyDataCommons/pdc-python-client/issues"
-Changelog = "https://github.com/PhilanthropyDataCommons/pdc-python-client/blob/main/CHANGELOG.md"
+Repository = "https://github.com/PhilanthropyDataCommons/pdc-api-python"
+Issues = "https://github.com/PhilanthropyDataCommons/pdc-api-python/issues"
+Changelog = "https://github.com/PhilanthropyDataCommons/pdc-api-python/blob/main/CHANGELOG.md"
 "PDC API" = "https://api.philanthropydatacommons.org/"
 
 [dependency-groups]
@@ -43,7 +43,7 @@ dev = [
   { include-group = "typecheck" },
 ]
 tests = [
-  "pdc-python-client[seeding,testing]",
+  "pdc-api[seeding,testing]",
   "pytest-cov>=7",
   "pytest>=9",
 ]
@@ -58,7 +58,7 @@ requires = ["uv_build>=0.12"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "pdc_api_client"
+module-name = "pdc_api"
 source-include = [
   "CHANGELOG.md",
   "codegen/*.py",
@@ -67,18 +67,18 @@ source-include = [
   "justfile",
   "tests/*.py",
 ]
-wheel-exclude = ["pdc_api_client/openapi.json"]
+wheel-exclude = ["pdc_api/openapi.json"]
 
 [tool.coverage.run]
 branch = true
 relative_files = true
 
 [tool.coverage.paths]
-pdc_api_client = ["src/pdc_api_client/", "*/site-packages/pdc_api_client/"]
+pdc_api = ["src/pdc_api/", "*/site-packages/pdc_api/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--cov=pdc_api_client", "--cov-report=term-missing"]
+addopts = ["--cov=pdc_api", "--cov-report=term-missing"]
 
 [tool.mypy]
 files = ["src", "tests", "integration_tests"]
@@ -99,7 +99,7 @@ extra-paths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ["src/pdc_api_client/_generated.py"]
+extend-exclude = ["src/pdc_api/_generated.py"]
 
 [tool.ruff.lint]
 extend-select = ["I", "S", "INT", "PLC0415"]

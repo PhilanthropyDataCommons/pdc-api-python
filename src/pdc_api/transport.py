@@ -5,8 +5,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from pdc_api_client import errors
-from pdc_api_client.token import TokenProvider
+from pdc_api import errors
+from pdc_api.token import TokenProvider
 
 _ERRORS_BY_STATUS = {
     400: errors.PDCBadRequestError,

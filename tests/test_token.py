@@ -3,8 +3,8 @@ from typing import Any
 import pytest
 import responses
 
-from pdc_api_client.errors import PDCServiceError, TokenRequestError
-from pdc_api_client.token import KeycloakClientCredentialsProvider
+from pdc_api.errors import PDCServiceError, TokenRequestError
+from pdc_api.token import KeycloakClientCredentialsProvider
 
 SERVER = "https://kc.test"
 REALM = "pdc"
