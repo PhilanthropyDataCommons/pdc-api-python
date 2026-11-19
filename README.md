@@ -13,13 +13,13 @@ Install it as `pdc-api` and import it as `pdc_api`.
 The package is not on PyPI yet. Install it from a tagged release on GitHub:
 
 ```bash
-pip install "pdc-api @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.3.0"
+pip install "pdc-api @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.4.0"
 ```
 
 or with uv:
 
 ```bash
-uv add git+https://github.com/PhilanthropyDataCommons/pdc-api-python --tag v0.3.0
+uv add git+https://github.com/PhilanthropyDataCommons/pdc-api-python --tag v0.4.0
 ```
 
 Two optional extras add test and seeding helpers:
@@ -27,7 +27,7 @@ Two optional extras add test and seeding helpers:
 - **`testing`:** helpers for mocking PDC responses in your own tests, built on [`responses`](https://github.com/getsentry/responses).
 - **`seeding`:** helpers for creating PDC and Keycloak test data, built on [`python-keycloak`](https://github.com/marcospereirampj/python-keycloak) and [Faker](https://github.com/joke2k/faker).
 
-Add them to the requirement, as in `"pdc-api[testing,seeding] @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.3.0"`.
+Add them to the requirement, as in `"pdc-api[testing,seeding] @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.4.0"`.
 
 Python 3.12 or later is required.
 
