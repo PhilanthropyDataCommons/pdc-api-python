@@ -240,4 +240,4 @@ See [CONTRIBUTING.md](https://github.com/PhilanthropyDataCommons/pdc-api-python/
 
 ## License
 
-[AGPL-3.0](https://github.com/PhilanthropyDataCommons/pdc-api-python/blob/main/LICENSE). Maintained by [DrivenData](https://drivendata.org).
+[AGPL-3.0](https://github.com/PhilanthropyDataCommons/pdc-api-python/blob/main/LICENSE). Maintained by [DrivenData](https://drivendata.co/).
