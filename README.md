@@ -10,16 +10,16 @@ Install it as `pdc-api` and import it as `pdc_api`.
 
 ## Installation
 
-The package is not on PyPI yet. Install it from a tagged release on GitHub:
+Install it from [PyPI](https://pypi.org/project/pdc-api/):
 
 ```bash
-pip install "pdc-api @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.4.0"
+pip install pdc-api
 ```
 
 or with uv:
 
 ```bash
-uv add git+https://github.com/PhilanthropyDataCommons/pdc-api-python --tag v0.4.0
+uv add pdc-api
 ```
 
 Two optional extras add test and seeding helpers:
@@ -27,7 +27,7 @@ Two optional extras add test and seeding helpers:
 - **`testing`:** helpers for mocking PDC responses in your own tests, built on [`responses`](https://github.com/getsentry/responses).
 - **`seeding`:** helpers for creating PDC and Keycloak test data, built on [`python-keycloak`](https://github.com/marcospereirampj/python-keycloak) and [Faker](https://github.com/joke2k/faker).
 
-Add them to the requirement, as in `"pdc-api[testing,seeding] @ git+https://github.com/PhilanthropyDataCommons/pdc-api-python@v0.4.0"`.
+Add them to the requirement, as in `pdc-api[testing,seeding]`.
 
 Python 3.12 or later is required.
 
@@ -236,8 +236,8 @@ def test_lists_changemakers():
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, tests, and regenerating the models.
+See [CONTRIBUTING.md](https://github.com/PhilanthropyDataCommons/pdc-api-python/blob/main/CONTRIBUTING.md) for development setup, tests, and regenerating the models.
 
 ## License
 
-[AGPL-3.0](LICENSE). Maintained by [DrivenData](https://drivendata.org).
+[AGPL-3.0](https://github.com/PhilanthropyDataCommons/pdc-api-python/blob/main/LICENSE). Maintained by [DrivenData](https://drivendata.org).

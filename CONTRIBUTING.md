@@ -56,4 +56,15 @@ just check
 
 Generation is deterministic, and CI fails if `_generated.py` doesn't match the pinned spec. When a regenerated model breaks against real PDC data, add or change a rule in `codegen/preprocess.py`. Don't edit `_generated.py` by hand. Delete a rule once PDC fixes the problem it patches.
 
+## Releasing
+
+1. Open a pull request that bumps `version` in `pyproject.toml`, runs `uv lock`, and renames the changelog's `## Unreleased` heading to `## X.Y.Z (YYYY-MM-DD)`. Merge it.
+2. On the [Release workflow](https://github.com/PhilanthropyDataCommons/pdc-api-python/actions/workflows/release.yml) page, click **Run workflow**, leave the branch on `main`, enter the tag `vX.Y.Z`, and run it.
+
+The workflow checks that the tag matches the package version, doesn't exist yet, and has a dated changelog entry. It then builds and inspects the package, uploads it to Test PyPI and then PyPI, and creates the tag and GitHub release on the commit it ran on, with the changelog entry as the notes. Don't create the tag by hand.
+
+Check **Dry run** to upload to Test PyPI only and skip the PyPI upload and the GitHub release. A dry run can run from any branch.
+
+PyPI and Test PyPI publish through [trusted publishing](https://docs.pypi.org/trusted-publishers/), from the `release.yml` workflow in the `release` environment.
+
 Issues and pull requests are welcome.
