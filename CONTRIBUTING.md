@@ -64,7 +64,7 @@ Generation is deterministic, and CI fails if `_generated.py` doesn't match the p
 4. Run the workflow again with the same tag and **Dry run** unchecked.
 5. When the PyPI upload asks for approval, a `pypi` environment reviewer approves it. The workflow then uploads to PyPI and creates the tag and GitHub release on the commit it ran on, with the changelog entry as the notes.
 
-Don't create the tag by hand. GitHub releases are immutable, so once the workflow publishes a release, its tag and files can't be changed or deleted. As on PyPI, fixing a bad release takes a new version. To test a change to the workflow, do a dry run from your branch; dry runs need no approval.
+Don't create the tag by hand. GitHub releases are immutable, so once the workflow publishes a release, its tag and files can't be changed or deleted. As on PyPI, fixing a bad release takes a new version.
 
 PyPI and Test PyPI publish through [trusted publishing](https://docs.pypi.org/trusted-publishers/), from the `release.yml` workflow. Test PyPI trusts the `test-pypi` environment, and PyPI trusts the `pypi` environment, which only `main` can use.
 
