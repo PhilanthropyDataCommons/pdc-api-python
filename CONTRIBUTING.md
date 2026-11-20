@@ -59,12 +59,13 @@ Generation is deterministic, and CI fails if `_generated.py` doesn't match the p
 ## Releasing
 
 1. Open a pull request that bumps `version` in `pyproject.toml`, runs `uv lock`, and renames the changelog's `## Unreleased` heading to `## X.Y.Z (YYYY-MM-DD)`. Merge it.
-2. On the [Release workflow](https://github.com/PhilanthropyDataCommons/pdc-api-python/actions/workflows/release.yml) page, click **Run workflow**, leave the branch on `main`, enter the tag `vX.Y.Z`, and run it.
+2. Do a dry run. On the [Release workflow](https://github.com/PhilanthropyDataCommons/pdc-api-python/actions/workflows/release.yml) page, click **Run workflow**, leave the branch on `main`, enter the tag `vX.Y.Z`, check **Dry run**, and run it. The workflow checks that the tag matches the package version and doesn't exist yet, and that the changelog has a dated entry for it. It then builds and inspects the package, uploads it to Test PyPI, and prints the files and release notes it would publish.
+3. Check the package on [Test PyPI](https://test.pypi.org/project/pdc-api/) and the release notes in the log of the run's **Create the GitHub release** job.
+4. Run the workflow again with the same tag and **Dry run** unchecked.
+5. When the PyPI upload asks for approval, a `pypi` environment reviewer approves it. The workflow then uploads to PyPI and creates the tag and GitHub release on the commit it ran on, with the changelog entry as the notes.
 
-The workflow checks that the tag matches the package version, doesn't exist yet, and has a dated changelog entry. It then builds and inspects the package, uploads it to Test PyPI and then PyPI, and creates the tag and GitHub release on the commit it ran on, with the changelog entry as the notes. Don't create the tag by hand.
+Don't create the tag by hand. GitHub releases are immutable, so once the workflow publishes a release, its tag and files can't be changed or deleted. As on PyPI, fixing a bad release takes a new version. To test a change to the workflow, do a dry run from your branch; dry runs need no approval.
 
-Check **Dry run** to upload to Test PyPI only and skip the PyPI upload and the GitHub release. A dry run can run from any branch.
-
-PyPI and Test PyPI publish through [trusted publishing](https://docs.pypi.org/trusted-publishers/), from the `release.yml` workflow in the `release` environment.
+PyPI and Test PyPI publish through [trusted publishing](https://docs.pypi.org/trusted-publishers/), from the `release.yml` workflow. Test PyPI trusts the `test-pypi` environment, and PyPI trusts the `pypi` environment, which only `main` can use.
 
 Issues and pull requests are welcome.

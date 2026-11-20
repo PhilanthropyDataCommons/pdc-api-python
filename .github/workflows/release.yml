@@ -116,7 +116,9 @@ jobs:
     name: Upload to Test PyPI
     needs: build
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: test-pypi
+      url: https://test.pypi.org/project/pdc-api/
     permissions:
       id-token: write # PyPI trusted publishing
     steps:
@@ -136,7 +138,9 @@ jobs:
     needs: upload-to-test-pypi
     if: ${{ !inputs.dry-run }}
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pdc-api/
     permissions:
       id-token: write # PyPI trusted publishing
     steps:
