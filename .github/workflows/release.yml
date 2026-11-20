@@ -8,9 +8,9 @@ on:
         description: Version tag, such as v1.2.3
         required: true
       dry-run:
-        description: Dry run (upload to Test PyPI only, and skip the PyPI upload and the GitHub release)
+        description: "Dry run: upload to Test PyPI only. Uncheck to publish to PyPI and create the GitHub release."
         type: boolean
-        default: false
+        default: true
 
 concurrency:
   group: release
