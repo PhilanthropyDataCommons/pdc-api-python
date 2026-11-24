@@ -1,6 +1,6 @@
 [project]
 name = "pdc-api"
-version = "0.4.1"
+version = "0.5.0"
 description = "Python client for the Philanthropy Data Commons (PDC) API"
 readme = "README.md"
 license = "AGPL-3.0-only"
