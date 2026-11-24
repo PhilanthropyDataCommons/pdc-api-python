@@ -396,8 +396,19 @@ def _sync_task(*, id: int = 7, status: str, details: dict | None = None) -> dict
     }
 
 
-IN_FLIGHT_STATUSES = [SyncTaskStatus.PENDING, SyncTaskStatus.IN_PROGRESS]
-UNSUCCESSFUL_STATUSES = [s for s in SyncTaskStatus if s not in [*IN_FLIGHT_STATUSES, SyncTaskStatus.COMPLETED]]
+EXPECTED_SYNC_OUTCOME = {
+    SyncTaskStatus.PENDING: "polls",
+    SyncTaskStatus.IN_PROGRESS: "polls",
+    SyncTaskStatus.COMPLETED: "returns",
+    SyncTaskStatus.FAILED: "raises",
+    SyncTaskStatus.CANCELED: "raises",
+}
+IN_FLIGHT_STATUSES = [status for status, outcome in EXPECTED_SYNC_OUTCOME.items() if outcome == "polls"]
+UNSUCCESSFUL_STATUSES = [status for status, outcome in EXPECTED_SYNC_OUTCOME.items() if outcome == "raises"]
+
+
+def test_every_sync_task_status_has_an_expected_outcome():
+    assert set(SyncTaskStatus) - set(EXPECTED_SYNC_OUTCOME) == set()
 
 
 @pytest.fixture(

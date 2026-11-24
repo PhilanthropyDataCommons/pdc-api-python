@@ -39,14 +39,17 @@ def _changemaker_grant_payload(*, grant_id: int, changemaker_id: int, grantee_or
 
 GRANTEE_KEY_VALUES = {"grantee_user_keycloak_user_id": USER_UUID, "grantee_keycloak_organization_id": ORG_UUID}
 
-KEYED_GRANTEE_TYPES = {
+EXPECTED_GRANTEE_KEY = {
     PermissionGrantGranteeType.USER: "grantee_user_keycloak_user_id",
     PermissionGrantGranteeType.USER_GROUP: "grantee_keycloak_organization_id",
+    PermissionGrantGranteeType.AUTHENTICATED_USERS: None,
+    PermissionGrantGranteeType.ALL_FUNDERS: None,
 }
 
 
 def _required_keys(grantee_type: PermissionGrantGranteeType) -> set[str]:
-    return {KEYED_GRANTEE_TYPES[grantee_type]} if grantee_type in KEYED_GRANTEE_TYPES else set()
+    key = EXPECTED_GRANTEE_KEY[grantee_type]
+    return {key} if key else set()
 
 
 def _grant_with_keys(grantee_type: PermissionGrantGranteeType, keys: set[str]) -> ChangemakerPermissionGrant:
@@ -62,13 +65,18 @@ def _grant_with_keys(grantee_type: PermissionGrantGranteeType, keys: set[str]) -
 
 
 class TestGranteeKeyValidator:
-    @pytest.mark.parametrize("grantee_type", list(PermissionGrantGranteeType))
+    def test_every_grantee_type_has_an_expected_key(self):
+        assert set(PermissionGrantGranteeType) - set(EXPECTED_GRANTEE_KEY) == set()
+
+    @pytest.mark.parametrize("grantee_type", list(EXPECTED_GRANTEE_KEY))
     def test_accepts_the_keys_its_type_requires(self, grantee_type):
         grant = _grant_with_keys(grantee_type, _required_keys(grantee_type))
 
         assert {key for key in GRANTEE_KEY_VALUES if getattr(grant, key)} == _required_keys(grantee_type)
 
-    @pytest.mark.parametrize(("grantee_type", "key"), list(KEYED_GRANTEE_TYPES.items()))
+    @pytest.mark.parametrize(
+        ("grantee_type", "key"), [(grantee_type, key) for grantee_type, key in EXPECTED_GRANTEE_KEY.items() if key]
+    )
     def test_requires_the_key_its_type_names(self, grantee_type, key):
         with pytest.raises(ValueError, match=f"{key} is required"):
             _grant_with_keys(grantee_type, set())
@@ -77,7 +85,7 @@ class TestGranteeKeyValidator:
         ("grantee_type", "key"),
         [
             (grantee_type, key)
-            for grantee_type in PermissionGrantGranteeType
+            for grantee_type in EXPECTED_GRANTEE_KEY
             for key in GRANTEE_KEY_VALUES
             if key not in _required_keys(grantee_type)
         ],
