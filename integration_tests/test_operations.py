@@ -28,6 +28,7 @@ from pdc_api.client import (
     get_initiative_field_values,
     get_initiatives,
     get_organization_by_keycloak_id,
+    get_organizations,
     get_proposal,
     get_proposals,
     link_changemaker_to_proposal,
@@ -50,6 +51,7 @@ from pdc_api.models import (
     NewProposalFieldValue,
     NewProposalVersion,
     OpportunityBundle,
+    Organization,
     Proposal,
     ProposalBundle,
 )
@@ -530,6 +532,9 @@ class TestOrganizations:
     def test_get_organization_by_keycloak_id_404(self, api_session):
         with pytest.raises(PDCNotFoundError):
             get_organization_by_keycloak_id(api_session, keycloak_id=str(uuid.uuid4()))
+
+    def test_get_organizations_parses_every_entry(self, api_session):
+        assert all(isinstance(o, Organization) for o in get_organizations(api_session))
 
 
 class TestApplicationForm:

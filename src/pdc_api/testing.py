@@ -129,13 +129,39 @@ def changemaker_proposal_payload(*, id: int = 1, changemaker_id: int = 10, propo
     }
 
 
+def user_payload(
+    *, keycloak_user_id: str | UUID, keycloak_user_name: str | None = "Ada Lovelace", disabled_at: str | None = None
+) -> dict[str, Any]:
+    return {
+        "keycloakUserId": keycloak_user_id,
+        "keycloakUserName": keycloak_user_name,
+        "createdAt": CREATED_AT,
+        "syncedFromKeycloakAt": CREATED_AT,
+        "disabledAt": disabled_at,
+    }
+
+
 def organization_payload(
     *,
+    keycloak_organization_id: str | UUID = "00000000-0000-0000-0000-0000000000a1",
+    keycloak_organization_name: str | None = "Acme",
+    disabled_at: str | None = None,
     changemaker: dict[str, Any] | None = None,
     funder: dict[str, Any] | None = None,
     data_provider: dict[str, Any] | None = None,
+    members: list[dict[str, Any]] | None = None,
+    former_members: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    return {"changemaker": changemaker, "funder": funder, "dataProvider": data_provider}
+    return {
+        "keycloakOrganizationId": keycloak_organization_id,
+        "keycloakOrganizationName": keycloak_organization_name,
+        "disabledAt": disabled_at,
+        "changemaker": changemaker,
+        "funder": funder,
+        "dataProvider": data_provider,
+        "members": members,
+        "formerMembers": former_members,
+    }
 
 
 def application_form_payload(*, id: int = 7, version: int = 1, opportunity_id: int = 5) -> dict[str, Any]:
@@ -283,7 +309,9 @@ def add_organization_response(
     add_json_response(
         base_url=base_url,
         path=f"organizations/{keycloak_id}",
-        payload=payload if payload is not None else organization_payload(**payload_kwargs),
+        payload=payload
+        if payload is not None
+        else organization_payload(keycloak_organization_id=keycloak_id, **payload_kwargs),
         status=status,
     )
 

@@ -132,6 +132,45 @@ class InitiativePatch(BaseSchema):
     title: Annotated[str | None, Field(examples=["Clean Water for the Upper Valley"], min_length=1)] = None
 
 
+class Memberships(BaseSchema):
+    added: Annotated[int, Field(description="The number of memberships created in the local cache by the sync run.")]
+    disabled: Annotated[
+        int,
+        Field(
+            description="The number of local membership rows marked disabled by the sync run because Keycloak no longer reports them."
+        ),
+    ]
+    seen: Annotated[int, Field(description="The number of memberships found in Keycloak during the sync run.")]
+    updated: Annotated[
+        int, Field(description="The number of existing memberships confirmed against Keycloak by the sync run.")
+    ]
+
+
+class Organizations(BaseSchema):
+    added: Annotated[int, Field(description="The number of organizations created in the local cache by the sync run.")]
+    disabled: Annotated[
+        int,
+        Field(
+            description="The number of local organization rows marked disabled by the sync run because Keycloak reports them as absent or not enabled."
+        ),
+    ]
+    seen: Annotated[int, Field(description="The number of organizations found in Keycloak during the sync run.")]
+    updated: Annotated[
+        int, Field(description="The number of existing organizations confirmed against Keycloak by the sync run.")
+    ]
+
+
+class Details(BaseSchema):
+    error: Annotated[
+        str | None,
+        Field(
+            description="The message of the error that caused the sync run to fail; present only when the task status is `failed`."
+        ),
+    ] = None
+    memberships: Memberships | None = None
+    organizations: Organizations | None = None
+
+
 class PdcError(BaseSchema):
     details: list[Any] | None = []
     message: str | None = None
@@ -167,6 +206,7 @@ class PermissionGrantGranteeType(StrEnum):
     USER = "user"
     USER_GROUP = "userGroup"
     AUTHENTICATED_USERS = "authenticatedUsers"
+    ALL_FUNDERS = "allFunders"
 
 
 class PermissionGrantVerb(StrEnum):
@@ -265,7 +305,7 @@ class Users(BaseSchema):
     ]
 
 
-class Details(BaseSchema):
+class Details1(BaseSchema):
     users: Users
 
 
@@ -488,6 +528,22 @@ class InitiativeFieldValuePatch(BaseSchema):
     value: Annotated[str | None, Field(examples=["A program that brings clean water to the upper valley."])] = None
 
 
+class OrganizationSyncTask(BaseSchema):
+    created_at: Annotated[AwareDatetime, Field(alias="createdAt")]
+    created_by: Annotated[
+        UUID, Field(alias="createdBy", description="The keycloak user id of the PDC user that requested this sync.")
+    ]
+    details: Annotated[
+        Details | None,
+        Field(
+            description="The summary of a completed sync run (counts for organizations and memberships), or an `error` message describing why the run failed; null until the task finishes."
+        ),
+    ]
+    id: Annotated[int, Field(examples=[3407])]
+    status: Status
+    status_updated_at: Annotated[AwareDatetime, Field(alias="statusUpdatedAt")]
+
+
 class PartialChangemaker(BaseSchema):
     keycloak_organization_id: Annotated[
         UUID | None,
@@ -612,7 +668,7 @@ class UserSyncTask(BaseSchema):
         UUID, Field(alias="createdBy", description="The keycloak user id of the PDC user that requested this sync.")
     ]
     details: Annotated[
-        Details | None, Field(description="The summary of the completed sync run; null until the task completes.")
+        Details1 | None, Field(description="The summary of the completed sync run; null until the task completes.")
     ]
     id: Annotated[int, Field(examples=[3407])]
     status: Status
@@ -727,7 +783,43 @@ class OpportunityBundle(Bundle):
 class Organization(BaseSchema):
     changemaker: ShallowChangemaker | None = None
     data_provider: Annotated[DataProvider | None, Field(alias="dataProvider")] = None
+    disabled_at: Annotated[
+        AwareDatetime | None,
+        Field(
+            alias="disabledAt",
+            description="The time this organization was observed as absent from or not enabled in Keycloak by a sync; null if the organization is still live in Keycloak.",
+        ),
+    ] = None
+    former_members: Annotated[
+        list[User] | None,
+        Field(
+            alias="formerMembers",
+            description="The organization's former members, the cached users whose cached membership Keycloak no longer reports; null when the caller may not see membership data.",
+            validate_default=True,
+        ),
+    ] = []
     funder: Funder | None = None
+    keycloak_organization_id: Annotated[
+        UUID, Field(alias="keycloakOrganizationId", description="The Keycloak-assigned UUID of the organization.")
+    ]
+    keycloak_organization_name: Annotated[
+        str | None,
+        Field(
+            alias="keycloakOrganizationName",
+            description="The organization name as reported by Keycloak; null until the first successful organization sync.",
+        ),
+    ] = None
+    members: Annotated[
+        list[User] | None,
+        Field(
+            description="The organization's current cached members as cached users; null when the caller may not see membership data.",
+            validate_default=True,
+        ),
+    ] = []
+
+
+class OrganizationBundle(Bundle):
+    entries: Annotated[list[Organization], Field(description="The collection of requested resources.")]
 
 
 class ProposalFieldValue(FieldValueBase):

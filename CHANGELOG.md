@@ -4,6 +4,14 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
+## Unreleased
+
+Spec: PDC 0.43.0, downloaded 2026-11-24.
+
+- `Organization` has `keycloak_organization_id`, `keycloak_organization_name`, `disabled_at`, `members`, and `former_members`. `members` and `former_members` are `None` when the caller may not see membership, or when PDC has not yet synced the organization from Keycloak.
+- `get_organizations` walks `GET /organizations`.
+- `pdc_api.testing` adds `user_payload`, and `organization_payload` takes the new fields.
+
 ## 0.4.1 (2026-11-20)
 
 - `pdc-api` is published on [PyPI](https://pypi.org/project/pdc-api/). Install it with `pip install pdc-api`.

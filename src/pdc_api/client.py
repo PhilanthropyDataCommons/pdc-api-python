@@ -76,6 +76,12 @@ def get_funders(session: APISession) -> Generator[Funder, None, None]:
             yield Funder.model_validate(entry)
 
 
+def get_organizations(session: APISession) -> Generator[Organization, None, None]:
+    for payload in _iterate_pages(session, endpoint="organizations"):
+        for entry in payload["entries"]:
+            yield Organization.model_validate(entry)
+
+
 def get_data_providers(session: APISession) -> Generator[DataProvider, None, None]:
     for payload in _iterate_pages(session, endpoint="dataProviders"):
         for entry in payload["entries"]:

@@ -51,9 +51,12 @@ from pdc_api.testing import (
     proposal_payload,
     proposal_version_payload,
     source_payload,
+    user_payload,
 )
 
 BASE_URL = "https://pdc.test"
+ORG_ID = "00000000-0000-0000-0000-0000000000a1"
+USER_ID = "00000000-0000-0000-0000-0000000000b1"
 
 
 def _post(path, payload):
@@ -123,14 +126,36 @@ class TestGetChangemakerProposal:
 
 class TestGetOrganizationByKeycloakId:
     def test_parses_organization_with_funder_facet(self, session, add_organization_response):
-        add_organization_response(keycloak_id="kc-uuid", funder=funder_payload(short_code="acme"))
+        add_organization_response(keycloak_id=ORG_ID, funder=funder_payload(short_code="acme"))
 
-        result = get_organization_by_keycloak_id(session, keycloak_id="kc-uuid")
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
 
         assert isinstance(result, Organization)
         assert result.funder is not None
         assert result.funder.short_code == "acme"
         assert result.changemaker is None
+
+    def test_parses_members_and_their_disabled_state(self, session, add_organization_response):
+        add_organization_response(
+            keycloak_id=ORG_ID,
+            members=[user_payload(keycloak_user_id=USER_ID, disabled_at="2026-11-19T20:11:38Z")],
+            former_members=[],
+        )
+
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
+
+        assert result.members is not None
+        assert [str(member.keycloak_user_id) for member in result.members] == [USER_ID]
+        assert result.members[0].disabled_at == datetime(2026, 11, 19, 20, 11, 38, tzinfo=UTC)
+        assert result.former_members == []
+
+    def test_keeps_members_null_when_hidden_from_the_caller(self, session, add_organization_response):
+        add_organization_response(keycloak_id=ORG_ID)
+
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
+
+        assert result.members is None
+        assert result.former_members is None
 
 
 class TestGetApplicationForm:
