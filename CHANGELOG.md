@@ -4,7 +4,7 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
-## Unreleased
+## 0.5.0 (2026-11-24)
 
 Spec: PDC 0.43.0, downloaded 2026-11-24.
 
