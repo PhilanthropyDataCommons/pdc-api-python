@@ -19,6 +19,11 @@ _DEFAULT_ENDPOINT = "defaultPermissionGrants"
 
 _DEFAULT_PAGE_SIZE = 50
 
+_GRANTEE_KEYS = {
+    PermissionGrantGranteeType.USER: "grantee_user_keycloak_user_id",
+    PermissionGrantGranteeType.USER_GROUP: "grantee_keycloak_organization_id",
+}
+
 
 class PermissionGrantConditionRule(BaseSchema):
     property: Literal["baseFieldCategory"]
@@ -44,27 +49,13 @@ class _PermissionGrantBase(BaseSchema):
 
     @model_validator(mode="after")
     def _check_grantee_keys_match_type(self) -> Self:
-        if self.grantee_type == PermissionGrantGranteeType.USER:
-            if self.grantee_user_keycloak_user_id is None:
-                raise ValueError("grantee_user_keycloak_user_id is required when grantee_type is 'user'")
-            if self.grantee_keycloak_organization_id is not None:
-                raise ValueError("grantee_keycloak_organization_id must not be set when grantee_type is 'user'")
-        elif self.grantee_type == PermissionGrantGranteeType.USER_GROUP:
-            if self.grantee_keycloak_organization_id is None:
-                raise ValueError("grantee_keycloak_organization_id is required when grantee_type is 'userGroup'")
-            if self.grantee_user_keycloak_user_id is not None:
-                raise ValueError("grantee_user_keycloak_user_id must not be set when grantee_type is 'userGroup'")
-        elif self.grantee_type == PermissionGrantGranteeType.AUTHENTICATED_USERS:
-            if self.grantee_user_keycloak_user_id is not None:
-                raise ValueError(
-                    "grantee_user_keycloak_user_id must not be set when grantee_type is 'authenticatedUsers'"
-                )
-            if self.grantee_keycloak_organization_id is not None:
-                raise ValueError(
-                    "grantee_keycloak_organization_id must not be set when grantee_type is 'authenticatedUsers'"
-                )
-        else:
-            raise ValueError(f"Unknown grantee_type: {self.grantee_type!r}")
+        required_key = _GRANTEE_KEYS.get(self.grantee_type)
+        for key in _GRANTEE_KEYS.values():
+            is_set = getattr(self, key) is not None
+            if key == required_key and not is_set:
+                raise ValueError(f"{key} is required when grantee_type is '{self.grantee_type}'")
+            if key != required_key and is_set:
+                raise ValueError(f"{key} must not be set when grantee_type is '{self.grantee_type}'")
         return self
 
 

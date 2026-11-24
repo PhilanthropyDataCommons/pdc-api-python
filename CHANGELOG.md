@@ -16,6 +16,7 @@ Breaking: `Organization.keycloak_organization_id` is now required, as PDC always
 - `sync_users_from_keycloak` and `sync_organizations_from_keycloak` start PDC's Keycloak sync and wait for it, raising `KeycloakSyncError` if it fails or times out. The token must carry the `kc-admin-api` scope.
 - `KeycloakClientCredentialsProvider` takes an optional `scope`.
 - Seeding's `KeycloakAdmin.set_user_enabled` enables or disables a Keycloak user.
+- Permission grants accept the `allFunders` grantee type, which grants to every funder, and the `reference` verb.
 
 ## 0.4.1 (2026-11-20)
 
