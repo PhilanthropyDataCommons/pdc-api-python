@@ -53,7 +53,6 @@ from pdc_api.models import (
     NewProposalFieldValue,
     NewProposalVersion,
     OpportunityBundle,
-    Organization,
     Proposal,
     ProposalBundle,
 )
@@ -554,10 +553,15 @@ class TestOrganizations:
 
         organization = get_organization_by_keycloak_id(api_session, keycloak_id=fresh_keycloak_org.id)
         assert organization.members is not None
-        assert [str(m.keycloak_user_id) for m in organization.members] == [member.id]
+        assert [(str(m.keycloak_user_id), m.disabled_at) for m in organization.members] == [(member.id, None)]
+        assert fresh_keycloak_org.id in {str(o.keycloak_organization_id) for o in get_organizations(api_session)}
 
-    def test_get_organizations_parses_every_entry(self, api_session):
-        assert all(isinstance(o, Organization) for o in get_organizations(api_session))
+        keycloak_admin.set_user_enabled(user_id=member.id, enabled=False)
+        sync_users_from_keycloak(admin_api_session)
+
+        organization = get_organization_by_keycloak_id(api_session, keycloak_id=fresh_keycloak_org.id)
+        assert organization.members is not None
+        assert [m.disabled_at is not None for m in organization.members] == [True]
 
 
 class TestApplicationForm:
