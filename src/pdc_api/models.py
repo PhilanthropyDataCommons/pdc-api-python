@@ -43,10 +43,10 @@ from pdc_api._generated import (
     ApplicationFormFieldInputType as InputType,
 )
 from pdc_api._generated import (
-    Status as SyncTaskStatus,
+    DataType as BaseFieldDataType,
 )
 from pdc_api._generated import (
-    DataType as BaseFieldDataType,
+    Status as SyncTaskStatus,
 )
 
 __all__ = [

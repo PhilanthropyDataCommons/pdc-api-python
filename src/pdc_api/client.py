@@ -2,7 +2,7 @@ import json
 import time
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any, ClassVar, Protocol, Self, TypeVar
+from typing import Any, ClassVar, Protocol, Self
 
 import requests
 
@@ -30,8 +30,6 @@ from pdc_api.models import (
     UserSyncTask,
 )
 from pdc_api.transport import APISession
-
-SyncTask = TypeVar("SyncTask", UserSyncTask, OrganizationSyncTask)
 
 
 def _iterate_pages(
@@ -368,7 +366,7 @@ def sync_organizations_from_keycloak(
     )
 
 
-def _run_sync_task(
+def _run_sync_task[SyncTask: (UserSyncTask, OrganizationSyncTask)](
     session: APISession,
     *,
     endpoint: str,
