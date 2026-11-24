@@ -4,14 +4,25 @@ from uuid import UUID
 import pytest
 
 from pdc_api.permission_grants import (
+    ApplicationFormFieldPermissionGrant,
+    ApplicationFormPermissionGrant,
+    BulkUploadPermissionGrant,
+    ChangemakerFieldValuePermissionGrant,
     ChangemakerPermissionGrant,
+    DataProviderPermissionGrant,
     DefaultPermissionGrant,
+    FunderPermissionGrant,
     InitiativeFieldValuePermissionGrant,
     InitiativePermissionGrant,
+    OpportunityPermissionGrant,
     PermissionGrantBundle,
     PermissionGrantEntityType,
     PermissionGrantGranteeType,
     PermissionGrantVerb,
+    ProposalFieldValuePermissionGrant,
+    ProposalPermissionGrant,
+    ProposalVersionPermissionGrant,
+    SourcePermissionGrant,
     TerminologySetPermissionGrant,
     _grant_to_payload,
     list_permission_grants,
@@ -149,26 +160,66 @@ class TestListFilters:
         assert result.entries == []
 
 
+EXPECTED_VARIANT = {
+    PermissionGrantEntityType.FUNDER: (FunderPermissionGrant, {"funderShortCode": "acme"}),
+    PermissionGrantEntityType.CHANGEMAKER: (ChangemakerPermissionGrant, {"changemakerId": 9}),
+    PermissionGrantEntityType.DATA_PROVIDER: (DataProviderPermissionGrant, {"dataProviderShortCode": "acme"}),
+    PermissionGrantEntityType.OPPORTUNITY: (OpportunityPermissionGrant, {"opportunityId": 1}),
+    PermissionGrantEntityType.PROPOSAL: (ProposalPermissionGrant, {"proposalId": 1}),
+    PermissionGrantEntityType.PROPOSAL_VERSION: (ProposalVersionPermissionGrant, {"proposalVersionId": 1}),
+    PermissionGrantEntityType.APPLICATION_FORM: (ApplicationFormPermissionGrant, {"applicationFormId": 1}),
+    PermissionGrantEntityType.APPLICATION_FORM_FIELD: (
+        ApplicationFormFieldPermissionGrant,
+        {"applicationFormFieldId": 1},
+    ),
+    PermissionGrantEntityType.PROPOSAL_FIELD_VALUE: (ProposalFieldValuePermissionGrant, {"proposalFieldValueId": 1}),
+    PermissionGrantEntityType.SOURCE: (SourcePermissionGrant, {"sourceId": 1}),
+    PermissionGrantEntityType.BULK_UPLOAD: (BulkUploadPermissionGrant, {"bulkUploadTaskId": 1}),
+    PermissionGrantEntityType.CHANGEMAKER_FIELD_VALUE: (
+        ChangemakerFieldValuePermissionGrant,
+        {"changemakerFieldValueId": 1},
+    ),
+    PermissionGrantEntityType.TERMINOLOGY_SET: (TerminologySetPermissionGrant, {"terminologySetId": 3}),
+    PermissionGrantEntityType.INITIATIVE: (InitiativePermissionGrant, {"initiativeId": 42}),
+    PermissionGrantEntityType.INITIATIVE_FIELD_VALUE: (
+        InitiativeFieldValuePermissionGrant,
+        {"initiativeFieldValueId": 7},
+    ),
+    PermissionGrantEntityType.ANY: None,
+}
+
+
 class TestVariantDiscrimination:
+    def test_every_context_entity_type_has_an_expected_variant(self):
+        assert set(PermissionGrantEntityType) - set(EXPECTED_VARIANT) == set()
+
     @pytest.mark.parametrize(
-        ("context", "variant"),
+        ("context_entity_type", "variant", "context"),
         [
-            ({"contextEntityType": "initiative", "initiativeId": 42}, InitiativePermissionGrant),
-            (
-                {"contextEntityType": "initiativeFieldValue", "initiativeFieldValueId": 7},
-                InitiativeFieldValuePermissionGrant,
-            ),
-            ({"contextEntityType": "terminologySet", "terminologySetId": 3}, TerminologySetPermissionGrant),
+            (context_entity_type, *expected)
+            for context_entity_type, expected in EXPECTED_VARIANT.items()
+            if expected is not None
         ],
     )
-    def test_parses_initiative_and_terminology_set_grants(self, session, add_page_response, context, variant):
-        payload = {**_changemaker_grant_payload(grant_id=1, changemaker_id=9, grantee_org_id=ORG_UUID), **context}
+    def test_parses_each_context_into_its_variant(
+        self, session, add_page_response, context_entity_type, variant, context
+    ):
+        payload = _changemaker_grant_payload(grant_id=1, changemaker_id=9, grantee_org_id=ORG_UUID)
         del payload["changemakerId"]
-        add_page_response(PermissionGrantBundle, payload=bundle([payload]))
+        add_page_response(
+            PermissionGrantBundle, payload=bundle([{**payload, "contextEntityType": context_entity_type, **context}])
+        )
 
         [grant] = list_permission_grants(session).entries
 
         assert isinstance(grant, variant)
+
+    def test_rejects_any_as_a_grant_context(self, session, add_page_response):
+        payload = _changemaker_grant_payload(grant_id=1, changemaker_id=9, grantee_org_id=ORG_UUID)
+        add_page_response(PermissionGrantBundle, payload=bundle([{**payload, "contextEntityType": "any"}]))
+
+        with pytest.raises(ValueError):
+            list_permission_grants(session)
 
     def test_initiative_field_value_condition_round_trips(self, session, add_page_response):
         payload = {**_changemaker_grant_payload(grant_id=1, changemaker_id=9, grantee_org_id=ORG_UUID)}
