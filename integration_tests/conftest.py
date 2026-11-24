@@ -1,3 +1,5 @@
+import base64
+import json
 import os
 import uuid
 
@@ -144,3 +146,31 @@ def add_user_to_org(keycloak_admin, keycloak_client_id, test_user_password):
             keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id)
 
     return add
+
+
+def _scoped_token_provider(scope: str) -> KeycloakClientCredentialsProvider:
+    return KeycloakClientCredentialsProvider(
+        server_url=KEYCLOAK_SERVER_URL,
+        realm=KEYCLOAK_REALM,
+        client_id=KEYCLOAK_CLIENT_ID,
+        client_secret=KEYCLOAK_CLIENT_SECRET,
+        timeout=PDC_API_TIMEOUT,
+        scope=scope,
+    )
+
+
+@pytest.fixture
+def client_token_claims():
+    def claims(*, scope: str) -> dict:
+        payload = _scoped_token_provider(scope).get_token().split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+
+    return claims
+
+
+@pytest.fixture(scope="session")
+def admin_api_session(keycloak_admin) -> APISession:
+    keycloak_admin.ensure_admin_api_access(client_id=KEYCLOAK_CLIENT_ID)
+    return APISession(
+        base_url=PDC_API_URL, token_provider=_scoped_token_provider("kc-admin-api"), timeout=PDC_API_TIMEOUT
+    )

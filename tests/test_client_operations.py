@@ -22,11 +22,14 @@ from pdc_api.client import (
     get_organization_by_keycloak_id,
     get_proposal,
     link_changemaker_to_proposal,
+    sync_organizations_from_keycloak,
+    sync_users_from_keycloak,
 )
 from pdc_api.errors import (
     ApplicationFormNotFoundError,
     ChangemakerNotFoundError,
     FunderNotFoundError,
+    KeycloakSyncError,
     PDCNotFoundError,
     ProposalNotFoundError,
 )
@@ -379,3 +382,54 @@ class TestGetBundlePage:
         )
 
         assert result.total == 0
+
+
+def _sync_task(*, id: int = 7, status: str, details: dict | None = None) -> dict:
+    return {
+        "id": id,
+        "status": status,
+        "details": details,
+        "createdAt": "2026-11-19T20:11:38Z",
+        "createdBy": USER_ID,
+        "statusUpdatedAt": "2026-11-19T20:11:38Z",
+    }
+
+
+class TestSyncUsersFromKeycloak:
+    def test_polls_until_the_task_completes(self, session, add_json_response):
+        _post("users/sync", _sync_task(status="pending"))
+        add_json_response(path="users/sync/7", payload=_sync_task(status="in_progress"))
+        add_json_response(
+            path="users/sync/7",
+            payload=_sync_task(
+                status="completed", details={"users": {"seen": 2, "added": 1, "updated": 1, "disabled": 0}}
+            ),
+        )
+
+        task = sync_users_from_keycloak(session, poll_interval_seconds=0)
+
+        assert task.status == "completed"
+        assert len(responses.calls) == 3
+
+    def test_raises_when_the_task_fails(self, session, add_json_response):
+        _post("users/sync", _sync_task(status="pending"))
+        add_json_response(path="users/sync/7", payload=_sync_task(status="failed"))
+
+        with pytest.raises(KeycloakSyncError, match="failed"):
+            sync_users_from_keycloak(session, poll_interval_seconds=0)
+
+    def test_raises_when_the_task_outlasts_the_timeout(self, session):
+        _post("users/sync", _sync_task(status="pending"))
+
+        with pytest.raises(KeycloakSyncError, match="pending"):
+            sync_users_from_keycloak(session, poll_interval_seconds=0, timeout_seconds=0)
+
+
+class TestSyncOrganizationsFromKeycloak:
+    def test_polls_the_organization_sync_task(self, session, add_json_response):
+        _post("organizations/sync", _sync_task(status="pending"))
+        add_json_response(path="organizations/sync/7", payload=_sync_task(status="completed"))
+
+        task = sync_organizations_from_keycloak(session, poll_interval_seconds=0)
+
+        assert task.status == "completed"

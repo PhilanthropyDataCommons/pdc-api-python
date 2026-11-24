@@ -25,6 +25,7 @@ from pdc_api._generated import (
     InitiativeFieldValue,
     Opportunity,
     Organization,
+    OrganizationSyncTask,
     PermissionGrantEntityType,
     PermissionGrantGranteeType,
     PermissionGrantVerb,
@@ -36,9 +37,13 @@ from pdc_api._generated import (
     SensitivityClassification,
     ShallowChangemaker,
     Source,
+    UserSyncTask,
 )
 from pdc_api._generated import (
     ApplicationFormFieldInputType as InputType,
+)
+from pdc_api._generated import (
+    Status as SyncTaskStatus,
 )
 from pdc_api._generated import (
     DataType as BaseFieldDataType,
@@ -73,6 +78,7 @@ __all__ = [
     "Opportunity",
     "OpportunityBundle",
     "Organization",
+    "OrganizationSyncTask",
     "PermissionGrantEntityType",
     "PermissionGrantGranteeType",
     "PermissionGrantVerb",
@@ -85,6 +91,8 @@ __all__ = [
     "SensitivityClassification",
     "ShallowChangemaker",
     "Source",
+    "SyncTaskStatus",
+    "UserSyncTask",
 ]
 
 

@@ -37,6 +37,10 @@ class PDCUnprocessableEntityError(PDCException):
     pass
 
 
+class KeycloakSyncError(PDCException):
+    pass
+
+
 class TokenRequestError(PDCException):
     pass
 

@@ -4,6 +4,9 @@ from typing import Any
 from keycloak import KeycloakAdmin as _KeycloakAdminClient
 from keycloak.exceptions import KeycloakGetError
 
+ADMIN_API_SCOPE = "kc-admin-api"
+ADMIN_API_VIEW_ROLES = ("view-users", "view-organizations")
+
 
 @dataclass
 class KeycloakOrganization:
@@ -170,6 +173,35 @@ class KeycloakAdmin:
     def set_direct_grants_enabled(self, *, client_id: str, enabled: bool) -> None:
         target = self._find_client(client_id)
         self._admin.update_client(target["id"], {"directAccessGrantsEnabled": enabled})
+
+    def ensure_admin_api_access(self, *, client_id: str) -> None:
+        client = self._find_client(client_id)
+        self._admin.add_client_optional_client_scope(client["id"], self._ensure_admin_api_client_scope(), {})
+        service_account = self._admin.get_client_service_account_user(client["id"])
+        realm_management_id = self._find_client("realm-management")["id"]
+        roles = [self._admin.get_client_role(realm_management_id, name) for name in ADMIN_API_VIEW_ROLES]
+        self._admin.assign_client_role(service_account["id"], realm_management_id, roles)
+
+    # Keycloak 26.8.2 creates this built-in scope for new and migrated realms, but not for imported ones.
+    def _ensure_admin_api_client_scope(self) -> str:
+        for scope in self._admin.get_client_scopes():
+            if scope["name"] == ADMIN_API_SCOPE:
+                return str(scope["id"])
+        return self._admin.create_client_scope(
+            {
+                "name": ADMIN_API_SCOPE,
+                "protocol": "openid-connect",
+                "attributes": {"include.in.token.scope": "true", "display.on.consent.screen": "false"},
+                "protocolMappers": [
+                    {
+                        "name": "admin-api-audience",
+                        "protocol": "openid-connect",
+                        "protocolMapper": "oidc-admin-api-audience-mapper",
+                        "config": {"access.token.claim": "true", "introspection.token.claim": "true"},
+                    }
+                ],
+            }
+        )
 
     def _find_client(self, client_id: str) -> dict[str, Any]:
         clients: list[dict[str, Any]] = self._admin.get_clients()

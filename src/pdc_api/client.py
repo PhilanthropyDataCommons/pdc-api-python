@@ -1,7 +1,8 @@
 import json
+import time
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any, ClassVar, Protocol, Self
+from typing import Any, ClassVar, Protocol, Self, TypeVar
 
 import requests
 
@@ -20,12 +21,17 @@ from pdc_api.models import (
     InitiativeFieldValue,
     NewProposalVersion,
     Organization,
+    OrganizationSyncTask,
     PresignedPost,
     Proposal,
     ProposalVersion,
     Source,
+    SyncTaskStatus,
+    UserSyncTask,
 )
 from pdc_api.transport import APISession
+
+SyncTask = TypeVar("SyncTask", UserSyncTask, OrganizationSyncTask)
 
 
 def _iterate_pages(
@@ -336,3 +342,49 @@ def upload_file_to_s3_presigned_url(
         response.raise_for_status()
     except requests.RequestException as exc:
         raise errors.PDCServiceError(detail=f"Could not upload file to S3: {exc}") from exc
+
+
+def sync_users_from_keycloak(
+    session: APISession, *, poll_interval_seconds: float = 0.5, timeout_seconds: float = 120.0
+) -> UserSyncTask:
+    return _run_sync_task(
+        session,
+        endpoint="users/sync",
+        task_type=UserSyncTask,
+        poll_interval_seconds=poll_interval_seconds,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def sync_organizations_from_keycloak(
+    session: APISession, *, poll_interval_seconds: float = 0.5, timeout_seconds: float = 120.0
+) -> OrganizationSyncTask:
+    return _run_sync_task(
+        session,
+        endpoint="organizations/sync",
+        task_type=OrganizationSyncTask,
+        poll_interval_seconds=poll_interval_seconds,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def _run_sync_task(
+    session: APISession,
+    *,
+    endpoint: str,
+    task_type: type[SyncTask],
+    poll_interval_seconds: float,
+    timeout_seconds: float,
+) -> SyncTask:
+    task = task_type.model_validate(session.post(endpoint).json())
+    deadline = time.monotonic() + timeout_seconds
+    while task.status in (SyncTaskStatus.PENDING, SyncTaskStatus.IN_PROGRESS):
+        if time.monotonic() >= deadline:
+            raise errors.KeycloakSyncError(
+                detail=f"{endpoint} task {task.id} still {task.status} after {timeout_seconds}s"
+            )
+        time.sleep(poll_interval_seconds)
+        task = task_type.model_validate(session.get(f"{endpoint}/{task.id}").json())
+    if task.status != SyncTaskStatus.COMPLETED:
+        raise errors.KeycloakSyncError(detail=f"{endpoint} task {task.id} {task.status}: {task.details}")
+    return task
