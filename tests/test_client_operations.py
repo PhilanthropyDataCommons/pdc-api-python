@@ -40,6 +40,7 @@ from pdc_api.models import (
     NewProposalFieldValue,
     NewProposalVersion,
     Organization,
+    SyncTaskStatus,
 )
 from pdc_api.testing import (
     application_form_payload,
@@ -395,41 +396,44 @@ def _sync_task(*, id: int = 7, status: str, details: dict | None = None) -> dict
     }
 
 
-class TestSyncUsersFromKeycloak:
-    def test_polls_until_the_task_completes(self, session, add_json_response):
-        _post("users/sync", _sync_task(status="pending"))
-        add_json_response(path="users/sync/7", payload=_sync_task(status="in_progress"))
-        add_json_response(
-            path="users/sync/7",
-            payload=_sync_task(
-                status="completed", details={"users": {"seen": 2, "added": 1, "updated": 1, "disabled": 0}}
-            ),
-        )
+IN_FLIGHT_STATUSES = [SyncTaskStatus.PENDING, SyncTaskStatus.IN_PROGRESS]
+UNSUCCESSFUL_STATUSES = [s for s in SyncTaskStatus if s not in [*IN_FLIGHT_STATUSES, SyncTaskStatus.COMPLETED]]
 
-        task = sync_users_from_keycloak(session, poll_interval_seconds=0)
 
-        assert task.status == "completed"
+@pytest.fixture(
+    params=[(sync_users_from_keycloak, "users/sync"), (sync_organizations_from_keycloak, "organizations/sync")],
+    ids=["users", "organizations"],
+)
+def sync(request):
+    return request.param
+
+
+class TestRunSyncTask:
+    @pytest.mark.parametrize("in_flight_status", IN_FLIGHT_STATUSES)
+    def test_polls_until_the_task_completes(self, session, add_json_response, sync, in_flight_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=in_flight_status))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=in_flight_status))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=SyncTaskStatus.COMPLETED))
+
+        task = sync_function(session, poll_interval_seconds=0)
+
+        assert task.status == SyncTaskStatus.COMPLETED
         assert len(responses.calls) == 3
 
-    def test_raises_when_the_task_fails(self, session, add_json_response):
-        _post("users/sync", _sync_task(status="pending"))
-        add_json_response(path="users/sync/7", payload=_sync_task(status="failed"))
+    @pytest.mark.parametrize("unsuccessful_status", UNSUCCESSFUL_STATUSES)
+    def test_raises_when_the_task_ends_unsuccessfully(self, session, add_json_response, sync, unsuccessful_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=SyncTaskStatus.PENDING))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=unsuccessful_status))
 
-        with pytest.raises(KeycloakSyncError, match="failed"):
-            sync_users_from_keycloak(session, poll_interval_seconds=0)
+        with pytest.raises(KeycloakSyncError, match=unsuccessful_status):
+            sync_function(session, poll_interval_seconds=0)
 
-    def test_raises_when_the_task_outlasts_the_timeout(self, session):
-        _post("users/sync", _sync_task(status="pending"))
+    @pytest.mark.parametrize("in_flight_status", IN_FLIGHT_STATUSES)
+    def test_raises_when_the_task_outlasts_the_timeout(self, session, sync, in_flight_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=in_flight_status))
 
-        with pytest.raises(KeycloakSyncError, match="pending"):
-            sync_users_from_keycloak(session, poll_interval_seconds=0, timeout_seconds=0)
-
-
-class TestSyncOrganizationsFromKeycloak:
-    def test_polls_the_organization_sync_task(self, session, add_json_response):
-        _post("organizations/sync", _sync_task(status="pending"))
-        add_json_response(path="organizations/sync/7", payload=_sync_task(status="completed"))
-
-        task = sync_organizations_from_keycloak(session, poll_interval_seconds=0)
-
-        assert task.status == "completed"
+        with pytest.raises(KeycloakSyncError, match=in_flight_status):
+            sync_function(session, poll_interval_seconds=0, timeout_seconds=0)
