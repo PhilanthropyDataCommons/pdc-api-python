@@ -13,7 +13,6 @@ Spec: PDC 0.43.0, downloaded 2026-11-24.
 - `pdc_api.testing` adds `user_payload`, and `organization_payload` takes the new fields.
 - `sync_users_from_keycloak` and `sync_organizations_from_keycloak` start PDC's Keycloak sync and wait for it, raising `KeycloakSyncError` if it fails or times out. The token must carry the `kc-admin-api` scope.
 - `KeycloakClientCredentialsProvider` takes an optional `scope`.
-- Seeding's `KeycloakAdmin.ensure_admin_api_access` lets a client request `kc-admin-api` tokens that can list users and organizations.
 
 ## 0.4.1 (2026-11-20)
 

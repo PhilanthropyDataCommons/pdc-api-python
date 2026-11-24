@@ -98,15 +98,3 @@ class TestEnsureDirectGrantsEnabled:
 
         keycloak_admin.ensure_direct_grants_enabled(client_id=keycloak_client_id)
         assert keycloak_admin.is_direct_grants_enabled(client_id=keycloak_client_id) is True
-
-
-class TestEnsureAdminApiAccess:
-    def test_lets_the_client_request_admin_api_tokens_that_can_list_users_and_organizations(
-        self, keycloak_admin, keycloak_client_id, client_token_claims
-    ):
-        keycloak_admin.ensure_admin_api_access(client_id=keycloak_client_id)
-        keycloak_admin.ensure_admin_api_access(client_id=keycloak_client_id)
-
-        claims = client_token_claims(scope="kc-admin-api")
-        assert "kc-admin-api" in claims["scope"].split()
-        assert {"view-users", "view-organizations"} <= set(claims["resource_access"]["realm-management"]["roles"])
