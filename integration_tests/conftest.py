@@ -4,7 +4,6 @@ import uuid
 import pytest
 import requests
 
-from pdc_api.errors import TokenRequestError
 from pdc_api.models import FunderCollaborativeMemberBundle
 from pdc_api.seeding.keycloak_admin import KeycloakAdmin
 from pdc_api.seeding.pdc_entities import (
@@ -147,7 +146,6 @@ def add_user_to_org(keycloak_admin, keycloak_client_id, test_user_password):
     return add
 
 
-# PDC's CI realm offers kc-admin-api only once service's realm.json defines it; until then the sync can't run.
 @pytest.fixture(scope="session")
 def admin_api_session() -> APISession:
     token_provider = KeycloakClientCredentialsProvider(
@@ -158,10 +156,4 @@ def admin_api_session() -> APISession:
         timeout=PDC_API_TIMEOUT,
         scope="kc-admin-api",
     )
-    try:
-        token_provider.get_token()
-    except TokenRequestError as error:
-        if "invalid_scope" not in str(error.detail):
-            raise
-        pytest.skip(f"Keycloak does not offer the kc-admin-api scope to {KEYCLOAK_CLIENT_ID}")
     return APISession(base_url=PDC_API_URL, token_provider=token_provider, timeout=PDC_API_TIMEOUT)

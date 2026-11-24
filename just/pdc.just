@@ -9,11 +9,12 @@ compose := 'docker compose -f ' + cache + '/compose-ci.yml'
 _default:
     @just --list pdc --unsorted
 
-# Fetch PDC's compose file and Keycloak realm
+# Fetch PDC's compose file and Keycloak realm, adding the admin API access the realm lacks
 fetch:
     mkdir -p {{cache}}/keycloak
     curl -fsSL {{base}}/compose-ci.yml -o {{cache}}/compose-ci.yml
     curl -fsSL {{base}}/keycloak/realm.json -o {{cache}}/keycloak/realm.json
+    uv run --no-project python -I just/patch_realm.py {{cache}}/keycloak/realm.json
 
 # Start the stack and wait until it is healthy
 up: fetch
