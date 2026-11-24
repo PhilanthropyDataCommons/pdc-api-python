@@ -41,6 +41,25 @@ def _add_token(*, access_token="abc", expires_in=300, status=200):
 
 
 class TestKeycloakClientCredentialsProvider:
+    def test_requests_the_given_scope(self):
+        responses.add(
+            responses.POST,
+            TOKEN_URL,
+            json={"access_token": "admin", "expires_in": 300},
+            match=[
+                responses.matchers.urlencoded_params_matcher(
+                    {
+                        "grant_type": "client_credentials",
+                        "client_id": "svc",
+                        "client_secret": "shh",
+                        "scope": "kc-admin-api",
+                    }
+                )
+            ],
+        )
+
+        assert _provider(scope="kc-admin-api").get_token() == "admin"
+
     def test_obtains_and_caches_token(self):
         _add_token(access_token="abc", expires_in=300)
 

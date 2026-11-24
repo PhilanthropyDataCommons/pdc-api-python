@@ -37,57 +37,62 @@ def _changemaker_grant_payload(*, grant_id: int, changemaker_id: int, grantee_or
     }
 
 
+GRANTEE_KEY_VALUES = {"grantee_user_keycloak_user_id": USER_UUID, "grantee_keycloak_organization_id": ORG_UUID}
+
+EXPECTED_GRANTEE_KEY = {
+    PermissionGrantGranteeType.USER: "grantee_user_keycloak_user_id",
+    PermissionGrantGranteeType.USER_GROUP: "grantee_keycloak_organization_id",
+    PermissionGrantGranteeType.AUTHENTICATED_USERS: None,
+    PermissionGrantGranteeType.ALL_FUNDERS: None,
+}
+
+
+def _required_keys(grantee_type: PermissionGrantGranteeType) -> set[str]:
+    key = EXPECTED_GRANTEE_KEY[grantee_type]
+    return {key} if key else set()
+
+
+def _grant_with_keys(grantee_type: PermissionGrantGranteeType, keys: set[str]) -> ChangemakerPermissionGrant:
+    return ChangemakerPermissionGrant.model_validate(
+        {
+            "changemaker_id": 7,
+            "grantee_type": grantee_type,
+            "verbs": [PermissionGrantVerb.VIEW],
+            "scope": [PermissionGrantEntityType.PROPOSAL],
+            **{key: GRANTEE_KEY_VALUES[key] for key in keys},
+        }
+    )
+
+
 class TestGranteeKeyValidator:
-    def test_user_grantee_requires_user_uuid(self):
-        with pytest.raises(ValueError, match="grantee_user_keycloak_user_id is required"):
-            ChangemakerPermissionGrant(
-                changemaker_id=7,
-                grantee_type=PermissionGrantGranteeType.USER,
-                grantee_keycloak_organization_id=ORG_UUID,
-                verbs=[PermissionGrantVerb.VIEW],
-                scope=[PermissionGrantEntityType.PROPOSAL],
-            )
+    def test_every_grantee_type_has_an_expected_key(self):
+        assert set(PermissionGrantGranteeType) - set(EXPECTED_GRANTEE_KEY) == set()
 
-    def test_user_group_grantee_rejects_user_uuid(self):
-        with pytest.raises(ValueError, match="grantee_user_keycloak_user_id must not be set"):
-            ChangemakerPermissionGrant(
-                changemaker_id=7,
-                grantee_type=PermissionGrantGranteeType.USER_GROUP,
-                grantee_keycloak_organization_id=ORG_UUID,
-                grantee_user_keycloak_user_id=USER_UUID,
-                verbs=[PermissionGrantVerb.VIEW],
-                scope=[PermissionGrantEntityType.PROPOSAL],
-            )
+    @pytest.mark.parametrize("grantee_type", list(EXPECTED_GRANTEE_KEY))
+    def test_accepts_the_keys_its_type_requires(self, grantee_type):
+        grant = _grant_with_keys(grantee_type, _required_keys(grantee_type))
 
-    def test_authenticated_users_grantee_allows_both_keys_null(self):
-        grant = ChangemakerPermissionGrant(
-            changemaker_id=7,
-            grantee_type=PermissionGrantGranteeType.AUTHENTICATED_USERS,
-            verbs=[PermissionGrantVerb.VIEW],
-            scope=[PermissionGrantEntityType.PROPOSAL],
-        )
-        assert grant.grantee_user_keycloak_user_id is None
-        assert grant.grantee_keycloak_organization_id is None
+        assert {key for key in GRANTEE_KEY_VALUES if getattr(grant, key)} == _required_keys(grantee_type)
 
-    def test_authenticated_users_grantee_rejects_org_uuid(self):
-        with pytest.raises(ValueError, match="grantee_keycloak_organization_id must not be set"):
-            ChangemakerPermissionGrant(
-                changemaker_id=7,
-                grantee_type=PermissionGrantGranteeType.AUTHENTICATED_USERS,
-                grantee_keycloak_organization_id=ORG_UUID,
-                verbs=[PermissionGrantVerb.VIEW],
-                scope=[PermissionGrantEntityType.PROPOSAL],
-            )
+    @pytest.mark.parametrize(
+        ("grantee_type", "key"), [(grantee_type, key) for grantee_type, key in EXPECTED_GRANTEE_KEY.items() if key]
+    )
+    def test_requires_the_key_its_type_names(self, grantee_type, key):
+        with pytest.raises(ValueError, match=f"{key} is required"):
+            _grant_with_keys(grantee_type, set())
 
-    def test_authenticated_users_grantee_rejects_user_uuid(self):
-        with pytest.raises(ValueError, match="grantee_user_keycloak_user_id must not be set"):
-            ChangemakerPermissionGrant(
-                changemaker_id=7,
-                grantee_type=PermissionGrantGranteeType.AUTHENTICATED_USERS,
-                grantee_user_keycloak_user_id=USER_UUID,
-                verbs=[PermissionGrantVerb.VIEW],
-                scope=[PermissionGrantEntityType.PROPOSAL],
-            )
+    @pytest.mark.parametrize(
+        ("grantee_type", "key"),
+        [
+            (grantee_type, key)
+            for grantee_type in EXPECTED_GRANTEE_KEY
+            for key in GRANTEE_KEY_VALUES
+            if key not in _required_keys(grantee_type)
+        ],
+    )
+    def test_rejects_keys_its_type_does_not_take(self, grantee_type, key):
+        with pytest.raises(ValueError, match=f"{key} must not be set"):
+            _grant_with_keys(grantee_type, _required_keys(grantee_type) | {key})
 
 
 class TestDefaultPermissionGrantContext:

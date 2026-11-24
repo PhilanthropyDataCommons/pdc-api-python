@@ -3,7 +3,7 @@
   "info": {
     "title": "Philanthropy Data Commons API",
     "description": "An API for a common data platform to make the process of submitting data requests to funders less burdensome for changemakers seeking grants.",
-    "version": "0.42.0",
+    "version": "0.43.0",
     "license": {
       "name": "GNU Affero General Public License v3.0 only",
       "url": "https://spdx.org/licenses/AGPL-3.0-only.html"
@@ -1148,6 +1148,24 @@
           },
           {
             "$ref": "#/components/parameters/verbParam"
+          },
+          {
+            "$ref": "#/components/parameters/contextEntityTypeParam"
+          },
+          {
+            "$ref": "#/components/parameters/scopeParam"
+          },
+          {
+            "$ref": "#/components/parameters/createdByParam"
+          },
+          {
+            "$ref": "#/components/parameters/granteeUserParam"
+          },
+          {
+            "$ref": "#/components/parameters/granteeOrganizationParam"
+          },
+          {
+            "$ref": "#/components/parameters/permissionGrantSortParam"
           }
         ],
         "responses": {
@@ -2442,9 +2460,6 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
@@ -2499,9 +2514,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -2689,9 +2701,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -3702,6 +3711,133 @@
         }
       }
     },
+    "/organizations": {
+      "get": {
+        "operationId": "getOrganizations",
+        "summary": "Gets a list of organizations as cached from Keycloak.",
+        "description": "Returns the cached Keycloak organizations, each including its role bundle (changemaker, data provider, and/or funder) and its current cached members. The caller's JWT must carry the PDC-service `pdc-admin` realm role or at least one of the Keycloak `realm-management` organization-visibility roles (`view-organizations`, `manage-organizations`, or `manage-realm`).",
+        "tags": [
+          "Organizations"
+        ],
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pageParam"
+          },
+          {
+            "$ref": "#/components/parameters/countParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of organizations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationBundle"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/organizations/sync": {
+      "post": {
+        "operationId": "syncOrganizationsFromKeycloak",
+        "summary": "Kicks off an asynchronous task that replicates all Keycloak organizations and their memberships into the PDC organizations cache.",
+        "description": "Creates an `organizationSyncTask` and enqueues a background job that lists the realm's organizations and their members at the Keycloak Admin REST API using the caller's own credentials, then merges them into the local `organizations` and `user_organization_memberships` cache. The caller's JWT must carry at least one of the `view-organizations`, `manage-organizations`, or `manage-realm` realm-management roles, and at least one of the `view-users` or `manage-users` realm-management roles, mirroring the sets Keycloak accepts on the equivalent organizations and members listing calls. The sync sets `disabledAt` for organizations that Keycloak reports as deleted or not enabled and for memberships Keycloak no longer reports, rather than deleting rows. Poll `GET /organizations/sync/{organizationSyncTaskId}` for completion.",
+        "tags": [
+          "Organizations"
+        ],
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The created organization sync task, initially pending.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSyncTask"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/organizations/sync/{organizationSyncTaskId}": {
+      "get": {
+        "operationId": "getOrganizationSyncTask",
+        "summary": "Gets the status of an organization sync task.",
+        "description": "Returns the requested organization sync task, including its `details` summary once completed. The requester can see their own tasks; administrators can see all tasks.",
+        "tags": [
+          "Organizations"
+        ],
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "organizationSyncTaskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/id"
+            },
+            "description": "The ID of the organization sync task to retrieve."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested organization sync task.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSyncTask"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/organizations/{keycloakOrganizationId}": {
       "get": {
         "operationId": "getOrganizationByKeycloakId",
@@ -4509,6 +4645,74 @@
         "required": false,
         "description": "Filters permission grants to those that include the given verb."
       },
+      "contextEntityTypeParam": {
+        "schema": {
+          "$ref": "#/components/schemas/PermissionGrantEntityType"
+        },
+        "in": "query",
+        "name": "contextEntityType",
+        "required": false,
+        "description": "Applies a filter based on permission grant context entity type."
+      },
+      "scopeParam": {
+        "schema": {
+          "$ref": "#/components/schemas/PermissionGrantEntityType"
+        },
+        "in": "query",
+        "name": "scope",
+        "required": false,
+        "description": "Applies a filter based on permission grant scope."
+      },
+      "granteeUserParam": {
+        "schema": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "enum": [
+                "me"
+              ]
+            }
+          ]
+        },
+        "in": "query",
+        "name": "granteeUser",
+        "required": false,
+        "description": "Applies a filter based on permission grant grantee user, or 'me'."
+      },
+      "granteeOrganizationParam": {
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "in": "query",
+        "name": "granteeOrganization",
+        "required": false,
+        "description": "Applies a filter based on permission grant grantee organization."
+      },
+      "permissionGrantSortParam": {
+        "schema": {
+          "type": "string",
+          "enum": [
+            "id",
+            "-id",
+            "createdAt",
+            "-createdAt",
+            "granteeType",
+            "-granteeType",
+            "contextEntityType",
+            "-contextEntityType",
+            "createdByUserName",
+            "-createdByUserName"
+          ]
+        },
+        "in": "query",
+        "name": "_sort",
+        "required": false,
+        "description": "Applies a sort based on the given field. Prefix with `-` for descending order. Defaults to `id` descending, which also breaks ties."
+      },
       "baseFieldSensitivityClassificationParam": {
         "schema": {
           "type": "string"
@@ -4532,7 +4736,8 @@
             "scopes": {
               "openid": "Use OpenID Connect (recommended).",
               "roles": "Read your roles (recommended).",
-              "profile": "Read your profile (recommended)."
+              "profile": "Read your profile (recommended).",
+              "kc-admin-api": "Access the Keycloak Admin REST API (required by the sync endpoints)."
             }
           }
         }
@@ -6489,8 +6694,31 @@
       },
       "Organization": {
         "type": "object",
-        "description": "Up to three entities related to roles played by an organization, as registered in the PDC: a changemaker role, a data provider role, and/or a funder role.",
+        "description": "Up to three entities related to roles played by an organization, as registered in the PDC: a changemaker role, a data provider role, and/or a funder role, alongside the organization's cached Keycloak identity.",
         "properties": {
+          "keycloakOrganizationId": {
+            "description": "The Keycloak-assigned UUID of the organization.",
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "keycloakOrganizationName": {
+            "description": "The organization name as reported by Keycloak; null until the first successful organization sync.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "readOnly": true
+          },
+          "disabledAt": {
+            "description": "The time this organization was observed as absent from or not enabled in Keycloak by a sync; null if the organization is still live in Keycloak.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "readOnly": true
+          },
           "changemaker": {
             "$ref": "#/components/schemas/ShallowChangemaker",
             "readOnly": true,
@@ -6505,12 +6733,173 @@
             "$ref": "#/components/schemas/Funder",
             "readOnly": true,
             "nullable": true
+          },
+          "members": {
+            "description": "The organization's current cached members as cached users; null when the caller may not see membership data.",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "readOnly": true
+          },
+          "formerMembers": {
+            "description": "The organization's former members, the cached users whose cached membership Keycloak no longer reports; null when the caller may not see membership data.",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "readOnly": true
           }
         },
         "required": [
+          "keycloakOrganizationId",
           "changemaker",
           "dataProvider",
           "funder"
+        ]
+      },
+      "OrganizationBundle": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Bundle"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "entries": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            },
+            "required": [
+              "entries"
+            ]
+          }
+        ]
+      },
+      "OrganizationSyncTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/id"
+              }
+            ],
+            "readOnly": true,
+            "example": 3407
+          },
+          "status": {
+            "type": "string",
+            "readOnly": true,
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed",
+              "canceled"
+            ]
+          },
+          "statusUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "details": {
+            "description": "The summary of a completed sync run (counts for organizations and memberships), or an `error` message describing why the run failed; null until the task finishes.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "readOnly": true,
+            "properties": {
+              "error": {
+                "type": "string",
+                "description": "The message of the error that caused the sync run to fail; present only when the task status is `failed`."
+              },
+              "organizations": {
+                "type": "object",
+                "properties": {
+                  "seen": {
+                    "type": "integer",
+                    "description": "The number of organizations found in Keycloak during the sync run."
+                  },
+                  "added": {
+                    "type": "integer",
+                    "description": "The number of organizations created in the local cache by the sync run."
+                  },
+                  "updated": {
+                    "type": "integer",
+                    "description": "The number of existing organizations confirmed against Keycloak by the sync run."
+                  },
+                  "disabled": {
+                    "type": "integer",
+                    "description": "The number of local organization rows marked disabled by the sync run because Keycloak reports them as absent or not enabled."
+                  }
+                },
+                "required": [
+                  "seen",
+                  "added",
+                  "updated",
+                  "disabled"
+                ]
+              },
+              "memberships": {
+                "type": "object",
+                "properties": {
+                  "seen": {
+                    "type": "integer",
+                    "description": "The number of memberships found in Keycloak during the sync run."
+                  },
+                  "added": {
+                    "type": "integer",
+                    "description": "The number of memberships created in the local cache by the sync run."
+                  },
+                  "updated": {
+                    "type": "integer",
+                    "description": "The number of existing memberships confirmed against Keycloak by the sync run."
+                  },
+                  "disabled": {
+                    "type": "integer",
+                    "description": "The number of local membership rows marked disabled by the sync run because Keycloak no longer reports them."
+                  }
+                },
+                "required": [
+                  "seen",
+                  "added",
+                  "updated",
+                  "disabled"
+                ]
+              }
+            }
+          },
+          "createdBy": {
+            "description": "The keycloak user id of the PDC user that requested this sync.",
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "statusUpdatedAt",
+          "details",
+          "createdAt",
+          "createdBy"
         ]
       },
       "Bundle": {
@@ -7365,7 +7754,8 @@
         "enum": [
           "user",
           "userGroup",
-          "authenticatedUsers"
+          "authenticatedUsers",
+          "allFunders"
         ],
         "description": "The type of grantee for a permission grant."
       },
@@ -7826,6 +8216,17 @@
               "granteeType": {
                 "type": "string",
                 "const": "authenticatedUsers"
+              }
+            },
+            "required": [
+              "granteeType"
+            ]
+          },
+          {
+            "properties": {
+              "granteeType": {
+                "type": "string",
+                "const": "allFunders"
               }
             },
             "required": [

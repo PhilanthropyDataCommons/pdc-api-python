@@ -96,6 +96,9 @@ class KeycloakAdmin:
         )
         return KeycloakUser(id=user_id, username=username, email=email)
 
+    def set_user_enabled(self, *, user_id: str, enabled: bool) -> None:
+        self._admin.update_user(user_id, {"enabled": enabled})
+
     def _find_user_by_username(self, username: str) -> dict[str, Any] | None:
         users: list[dict[str, Any]] = self._admin.get_users({"username": username, "exact": True})
         for user in users:

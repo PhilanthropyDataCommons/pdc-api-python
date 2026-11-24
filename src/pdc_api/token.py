@@ -22,12 +22,14 @@ class KeycloakClientCredentialsProvider:
         client_id: str,
         client_secret: str,
         timeout: float,
+        scope: str | None = None,
         expiry_leeway_seconds: float = 30.0,
     ) -> None:
         self._token_url = f"{server_url.rstrip('/')}/realms/{realm}/protocol/openid-connect/token"
         self._client_id = client_id
         self._client_secret = client_secret
         self._timeout = timeout
+        self._scope = scope
         self._leeway = expiry_leeway_seconds
         self._token: str | None = None
         self._expires_at: float = 0.0
@@ -48,6 +50,7 @@ class KeycloakClientCredentialsProvider:
                     "grant_type": "client_credentials",
                     "client_id": self._client_id,
                     "client_secret": self._client_secret,
+                    **({"scope": self._scope} if self._scope else {}),
                 },
                 timeout=self._timeout,
             )

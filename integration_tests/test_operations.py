@@ -28,9 +28,12 @@ from pdc_api.client import (
     get_initiative_field_values,
     get_initiatives,
     get_organization_by_keycloak_id,
+    get_organizations,
     get_proposal,
     get_proposals,
     link_changemaker_to_proposal,
+    sync_organizations_from_keycloak,
+    sync_users_from_keycloak,
 )
 from pdc_api.errors import PDCNotFoundError, ProposalNotFoundError
 from pdc_api.models import (
@@ -530,6 +533,35 @@ class TestOrganizations:
     def test_get_organization_by_keycloak_id_404(self, api_session):
         with pytest.raises(PDCNotFoundError):
             get_organization_by_keycloak_id(api_session, keycloak_id=str(uuid.uuid4()))
+
+    def test_sync_from_keycloak_reports_organization_members(
+        self,
+        api_session,
+        admin_api_session,
+        keycloak_admin,
+        fresh_keycloak_org,
+        add_user_to_org,
+        suffix,
+        test_user_password,
+    ):
+        username = f"sync-member-{suffix}@example.com"
+        add_user_to_org(username, fresh_keycloak_org)
+        member = keycloak_admin.ensure_user(username=username, email=username, password=test_user_password)
+
+        sync_users_from_keycloak(admin_api_session)
+        sync_organizations_from_keycloak(admin_api_session)
+
+        organization = get_organization_by_keycloak_id(api_session, keycloak_id=fresh_keycloak_org.id)
+        assert organization.members is not None
+        assert [(str(m.keycloak_user_id), m.disabled_at) for m in organization.members] == [(member.id, None)]
+        assert fresh_keycloak_org.id in {str(o.keycloak_organization_id) for o in get_organizations(api_session)}
+
+        keycloak_admin.set_user_enabled(user_id=member.id, enabled=False)
+        sync_users_from_keycloak(admin_api_session)
+
+        organization = get_organization_by_keycloak_id(api_session, keycloak_id=fresh_keycloak_org.id)
+        assert organization.members is not None
+        assert [m.disabled_at is not None for m in organization.members] == [True]
 
 
 class TestApplicationForm:
