@@ -34,7 +34,7 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 
 - Readability, simplicity, and elegance, in that order.
 - Write the test before the code. Assert transformations and branch behavior, not that a mock returned what it was given.
-- When behavior varies by enum member, union variant, or function, parametrize over the enum, union, or table the code uses rather than listing cases by hand, so a value that codegen adds is tested without a test change.
+- When behavior varies by enum member, union variant, or function, parametrize over the enum or union rather than listing cases by hand, so a value that codegen adds is tested without a test change. State expected outcomes as literals in the test, not by reading the code's own lookup table, so a wrong entry in that table fails a test.
 - Every client function gets an integration test against PDC as well as unit tests, unless PDC's CI stack can't support it.
 - Tests live in `Test<Subject>` classes named for the function or class under test, with methods named `test_<behavior>` in the present tense, such as `TestGetProposal.test_raises_proposal_not_found_on_404`. Integration tests that cover a workflow across several functions may group by area instead, such as `TestProposals`.
 - No docstrings, and comments only for a non-obvious why such as a PDC quirk, in one line.

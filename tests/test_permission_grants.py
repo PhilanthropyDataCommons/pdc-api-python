@@ -4,7 +4,6 @@ from uuid import UUID
 import pytest
 
 from pdc_api.permission_grants import (
-    _GRANTEE_KEYS,
     ChangemakerPermissionGrant,
     DefaultPermissionGrant,
     InitiativeFieldValuePermissionGrant,
@@ -40,9 +39,14 @@ def _changemaker_grant_payload(*, grant_id: int, changemaker_id: int, grantee_or
 
 GRANTEE_KEY_VALUES = {"grantee_user_keycloak_user_id": USER_UUID, "grantee_keycloak_organization_id": ORG_UUID}
 
+KEYED_GRANTEE_TYPES = {
+    PermissionGrantGranteeType.USER: "grantee_user_keycloak_user_id",
+    PermissionGrantGranteeType.USER_GROUP: "grantee_keycloak_organization_id",
+}
+
 
 def _required_keys(grantee_type: PermissionGrantGranteeType) -> set[str]:
-    return {key for key in [_GRANTEE_KEYS.get(grantee_type)] if key}
+    return {KEYED_GRANTEE_TYPES[grantee_type]} if grantee_type in KEYED_GRANTEE_TYPES else set()
 
 
 def _grant_with_keys(grantee_type: PermissionGrantGranteeType, keys: set[str]) -> ChangemakerPermissionGrant:
@@ -64,7 +68,7 @@ class TestGranteeKeyValidator:
 
         assert {key for key in GRANTEE_KEY_VALUES if getattr(grant, key)} == _required_keys(grantee_type)
 
-    @pytest.mark.parametrize(("grantee_type", "key"), list(_GRANTEE_KEYS.items()))
+    @pytest.mark.parametrize(("grantee_type", "key"), list(KEYED_GRANTEE_TYPES.items()))
     def test_requires_the_key_its_type_names(self, grantee_type, key):
         with pytest.raises(ValueError, match=f"{key} is required"):
             _grant_with_keys(grantee_type, set())
