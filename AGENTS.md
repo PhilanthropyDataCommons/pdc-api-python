@@ -23,9 +23,9 @@ A framework-free Python client for the Philanthropy Data Commons (PDC) API. The 
 
 ## Commands
 
-- `just test [--python VERSION] [--lowest-direct] [--upgrade] [-- ARGS]` runs the unit tests, which mock all HTTP with `responses`. `just integration` takes the same options. Both run against the installed package in an isolated environment, with the versions in `uv.lock` unless `--lowest-direct` or `--upgrade` resolves them fresh. Arguments after `--` go to pytest.
+- `just test [ARGS]` runs the unit tests, which mock all HTTP with `responses`, and `just integration [ARGS]` the live suite; arguments go to pytest. Both run against the installed package in an isolated environment, with the Python in `.python-version` and the versions in `uv.lock`. Set `PYTHON=VERSION` for another Python, and `LOWEST_DIRECT=true` or `UPGRADE=true` to resolve versions fresh.
 - `just pdc up` starts PDC's CI stack in Docker; `just integration` runs the live suite against it.
-- `just typecheck` runs mypy (with the pydantic plugin) over `src` and both test suites, mypy in strict mode over `src`, then pyrefly and ty over `src` and both test suites, and fails at the end if any of them failed. `just typecheck-mypy`, `just typecheck-pyrefly`, and `just typecheck-ty` run one checker each. All take `--python` and `--lowest-direct`, which work as they do for `just test`.
+- `just typecheck` runs mypy (with the pydantic plugin) over `src` and both test suites, mypy in strict mode over `src`, then pyrefly and ty over `src` and both test suites, and fails at the end if any of them failed. `just typecheck-mypy`, `just typecheck-pyrefly`, and `just typecheck-ty` run one checker each. All read `PYTHON` and `LOWEST_DIRECT`, which work as they do for `just test`.
 - `just zizmor` audits the GitHub Actions workflows; run it after changing anything in `.github/`. It runs offline audits only unless `GH_TOKEN` is set. Arguments go to zizmor.
 - Releases go through the Release workflow, which creates the tag; see "Releasing" in `CONTRIBUTING.md`. New changelog entries go under `## Unreleased`.
 - Verify with `just check` (lint, type checks, and both suites). The unit tests can't catch a change in PDC's behavior; if the stack isn't available, run `just lint`, `just typecheck`, and `just test` and say that integration verification is pending.

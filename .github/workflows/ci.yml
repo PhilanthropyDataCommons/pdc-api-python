@@ -90,7 +90,7 @@ jobs:
         with:
           cache-suffix: tests-py${{ matrix.python }}${{ matrix.lowest_direct && '-lowest-direct' || '' }}
       - name: Run the unit tests
-        run: just test --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct} ${UPGRADE:+--upgrade}
+        run: just test
         env:
           PYTHON: ${{ matrix.python }}
           LOWEST_DIRECT: ${{ matrix.lowest_direct && 'true' || '' }}
@@ -103,7 +103,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
       - name: Run the type checks
-        run: just typecheck --python="$PYTHON" ${LOWEST_DIRECT:+--lowest-direct}
+        run: just typecheck
         if: ${{ !cancelled() }}
         env:
           PYTHON: ${{ matrix.python }}
@@ -133,7 +133,7 @@ jobs:
         run: just pdc up
         timeout-minutes: 5
       - name: Run the integration tests
-        run: just integration ${UPGRADE:+--upgrade}
+        run: just integration
         timeout-minutes: 5
         env:
           UPGRADE: ${{ (github.event_name == 'schedule' || inputs.upgrade) && 'true' || '' }}

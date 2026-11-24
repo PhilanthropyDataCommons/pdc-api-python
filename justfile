@@ -3,7 +3,14 @@ set minimum-version := '1.55.0'
 
 mod pdc 'just/pdc.just'
 
-python := shell("cat .python-version")
+set positional-arguments
+
+python := env("PYTHON", shell("cat .python-version"))
+lowest_direct := env("LOWEST_DIRECT", "false")
+upgrade := env("UPGRADE", "false")
+isolated_run := "uv run --python=" + python + (if lowest_direct == "true" { " --resolution=lowest-direct" } else { "" }) + " --isolated --no-dev"
+pytest := isolated_run + (if upgrade == "true" { " --upgrade" } else { "" }) + " --no-editable --group tests --reinstall -- python -I -m pytest"
+typecheck_run := isolated_run + " --group tests --group typecheck --"
 
 _default:
     @just --list --unsorted
@@ -23,69 +30,49 @@ format:
 # Audit GitHub Actions workflows with zizmor (passes through args)
 [group('dev')]
 zizmor *args:
-    uvx --exclude-newer "7 days" zizmor .github/ {{args}}
+    uvx --exclude-newer "7 days" zizmor .github/ "$@"
 
 # Run all three type checkers, failing at the end if any failed
 [group('dev')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-typecheck python=python lowest_direct="false":
+typecheck:
     #!/usr/bin/env bash
     status=0
     for checker in mypy pyrefly ty; do
-        {{just_executable()}} typecheck-$checker --python={{python}} \
-            {{ if lowest_direct == "true" { "--lowest-direct" } else { "" } }} || status=1
+        {{just_executable()}} typecheck-$checker || status=1
     done
     exit $status
 
 # Type check the package and tests with mypy, then the package in strict mode
 [group('dev')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-typecheck-mypy python=python lowest_direct="false":
+typecheck-mypy:
     #!/usr/bin/env bash
     status=0
-    {{just_executable()}} _typecheck {{python}} {{lowest_direct}} mypy || status=1
-    {{just_executable()}} _typecheck {{python}} {{lowest_direct}} mypy --strict src || status=1
+    {{typecheck_run}} mypy --python-version={{python}} || status=1
+    {{typecheck_run}} mypy --python-version={{python}} --strict src || status=1
     exit $status
 
 # Type check the package and tests with pyrefly
 [group('dev')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-typecheck-pyrefly python=python lowest_direct="false" *args: (_typecheck python lowest_direct "pyrefly check" args)
+typecheck-pyrefly *args:
+    {{typecheck_run}} pyrefly check --python-version={{python}} "$@"
 
 # Type check the package and tests with ty
 [group('dev')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-typecheck-ty python=python lowest_direct="false" *args: (_typecheck python lowest_direct "ty check" args)
+typecheck-ty *args:
+    {{typecheck_run}} ty check --python-version={{python}} "$@"
 
 # Run the unit tests against the installed package
 [group('test')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-[arg("upgrade", long, value="true")]
-test python=python lowest_direct="false" upgrade="false" *args: (_pytest python lowest_direct upgrade args)
+test *args: _preview-upgrade
+    {{pytest}} "$@"
 
 # Run the integration tests against the installed package and a live PDC stack (run `just pdc up` first)
 [group('test')]
-[arg("python", long)]
-[arg("lowest_direct", long="lowest-direct", value="true")]
-[arg("upgrade", long, value="true")]
-integration python=python lowest_direct="false" upgrade="false" *args: (_pytest python lowest_direct upgrade "integration_tests/ " + args)
+integration *args: _preview-upgrade
+    {{pytest}} integration_tests/ "$@"
 
-_typecheck python lowest_direct tool *args:
-    uv run --python={{python}} {{ if lowest_direct == "true" { "--resolution=lowest-direct" } else { "" } }} --isolated --no-dev --group tests --group typecheck -- \
-        {{tool}} --python-version={{python}} {{args}}
-
-_pytest python lowest_direct upgrade *args:
-    @if [ "{{upgrade}}" = "true" ]; then uv lock --upgrade --dry-run; fi
-    uv run --python={{python}} \
-        {{ if lowest_direct == "true" { "--resolution=lowest-direct" } else { "" } }} \
-        {{ if upgrade == "true" { "--upgrade" } else { "" } }} \
-        --isolated --no-editable --no-dev --group tests --reinstall -- \
-        python -I -m pytest {{args}}
+_preview-upgrade:
+    @if [ "{{upgrade}}" = true ]; then uv lock --upgrade --dry-run; fi
 
 # Run lint, type checks, unit tests, and integration tests (run `just pdc up` first)
 [group('test')]
