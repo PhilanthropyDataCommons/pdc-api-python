@@ -67,7 +67,7 @@ class TokenProvider(Protocol):
     def refresh_if_necessary(self) -> None: ...
 ```
 
-The package ships one: `KeycloakClientCredentialsProvider` runs the OAuth2 client-credentials grant against PDC's Keycloak and caches the token until 30 seconds before it expires. Use it for a service account.
+The package ships one: `KeycloakClientCredentialsProvider` runs the OAuth2 client-credentials grant against PDC's Keycloak and caches the token until 30 seconds before it expires. Use it for a service account. Pass `scope` to request an optional client scope, such as `kc-admin-api`.
 
 To call PDC as a signed-in user, write your own provider that returns the user's access token and refreshes it as your app requires. The protocol is structural, so your class doesn't need to import or subclass anything from this package.
 
@@ -124,9 +124,33 @@ A changemaker can also write its own profile values. `create_changemaker_source`
 
 Uploading a file takes two steps. `create_file` creates the file record and returns a presigned S3 POST, and `upload_file_to_s3_presigned_url` sends the bytes to it.
 
+## Syncing from Keycloak
+
+PDC caches Keycloak's users, organizations, and memberships, and an `Organization`'s `members` and `former_members` come from that cache. `sync_users_from_keycloak` and `sync_organizations_from_keycloak` start PDC's sync, wait for it to finish, and return the completed task, or raise `KeycloakSyncError` if it fails or outlasts `timeout_seconds`. The token must carry the `kc-admin-api` scope:
+
+```python
+from pdc_api.client import sync_organizations_from_keycloak, sync_users_from_keycloak
+
+admin_session = APISession(
+    base_url="https://api.philanthropydatacommons.org/",
+    token_provider=KeycloakClientCredentialsProvider(
+        server_url="https://auth.philanthropydatacommons.org",
+        realm="pdc",
+        client_id="your-client-id",
+        client_secret="your-client-secret",
+        timeout=15,
+        scope="kc-admin-api",
+    ),
+)
+sync_users_from_keycloak(admin_session)
+sync_organizations_from_keycloak(admin_session)
+```
+
+`members` and `former_members` are `None` when the caller may not see membership, or when PDC has not yet synced the organization.
+
 ## Permission grants
 
-PDC controls access with permission grants. Each grant gives a grantee (a user, a Keycloak organization, or every authenticated user) a set of verbs (such as `view` or `edit`) over a set of scopes, in the context of one entity such as a changemaker or a proposal. `pdc_api.permission_grants` models each context as its own class, so a grant parses into, say, `ChangemakerPermissionGrant` with a typed `changemaker_id`:
+PDC controls access with permission grants. Each grant gives a grantee (a user, a Keycloak organization, every authenticated user, or every funder) a set of verbs (such as `view` or `edit`) over a set of scopes, in the context of one entity such as a changemaker or a proposal. `pdc_api.permission_grants` models each context as its own class, so a grant parses into, say, `ChangemakerPermissionGrant` with a typed `changemaker_id`:
 
 ```python
 from pdc_api.models import PermissionGrantEntityType, PermissionGrantGranteeType, PermissionGrantVerb
@@ -232,7 +256,7 @@ def test_lists_changemakers():
 `pdc_api.seeding` (extra: `seeding`) creates realistic data on a PDC stack through the public PDC API and the Keycloak admin API. It is for local development and integration tests, not production:
 
 - **`pdc_api.seeding.pdc_entities`:** `seed_*` functions for funders, collaboratives, changemakers, fiscal sponsorships, data providers, opportunities, application forms, proposals, initiatives, and field values. `seed_proposal_bundle` creates a full proposal and everything it depends on in one call.
-- **`pdc_api.seeding.keycloak_admin`:** `KeycloakAdmin`, whose `ensure_*` methods create Keycloak organizations, users, memberships, and realm roles only if they don't already exist, so re-running a seed script is safe.
+- **`pdc_api.seeding.keycloak_admin`:** `KeycloakAdmin`, whose `ensure_*` methods create Keycloak organizations, users, memberships, and realm roles only if they don't already exist, so re-running a seed script is safe. `set_user_enabled` enables or disables a user.
 
 ## Contributing
 

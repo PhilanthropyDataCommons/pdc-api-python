@@ -4,7 +4,7 @@ import pytest
 
 from pdc_api.client import get_application_form
 from pdc_api.errors import PDCBadRequestError
-from pdc_api.models import ChangemakerApplicationForm
+from pdc_api.models import ChangemakerApplicationForm, InputType
 from pdc_api.seeding.pdc_entities import seed_application_form, seed_base_field, seed_opportunity
 
 SPEC_ENUM_VALUES = ["shortText", "longText", "radio", "dropdown", "multiselect", "hidden"]
@@ -38,6 +38,9 @@ def post_form_field(api_session):
 
 
 class TestApplicationFormInputTypeContract:
+    def test_spec_enum_values_match_the_generated_input_type(self):
+        assert set(SPEC_ENUM_VALUES) == set(InputType)
+
     @pytest.mark.parametrize("value", SPEC_ENUM_VALUES)
     def test_spec_enum_value_round_trips(self, post_form_field, value):
         assert post_form_field(value) == value

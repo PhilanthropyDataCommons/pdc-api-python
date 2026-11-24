@@ -4,6 +4,20 @@ This project follows [Semantic Versioning](https://semver.org). Until 1.0, a min
 
 PDC does not bump its spec version for every API change, so each entry names the spec version and the date the spec was downloaded.
 
+## Unreleased
+
+Spec: PDC 0.43.0, downloaded 2026-11-24.
+
+Breaking: `Organization.keycloak_organization_id` is now required, as PDC always returns it. Code that builds an `Organization` without it, such as test fixtures, must add it.
+
+- `Organization` has `keycloak_organization_id`, `keycloak_organization_name`, `disabled_at`, `members`, and `former_members`. `members` and `former_members` are `None` when the caller may not see membership, or when PDC has not yet synced the organization from Keycloak.
+- `get_organizations` walks `GET /organizations`.
+- `pdc_api.testing` adds `user_payload`, and `organization_payload` takes the new fields.
+- `sync_users_from_keycloak` and `sync_organizations_from_keycloak` start PDC's Keycloak sync and wait for it, raising `KeycloakSyncError` if it fails or times out. The token must carry the `kc-admin-api` scope.
+- `KeycloakClientCredentialsProvider` takes an optional `scope`.
+- Seeding's `KeycloakAdmin.set_user_enabled` enables or disables a Keycloak user.
+- Permission grants accept the `allFunders` grantee type, which grants to every funder.
+
 ## 0.4.1 (2026-11-20)
 
 - `pdc-api` is published on [PyPI](https://pypi.org/project/pdc-api/). Install it with `pip install pdc-api`.

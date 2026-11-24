@@ -119,18 +119,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check out the PDC service repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          repository: PhilanthropyDataCommons/service
-          path: service
-      - name: Add hosts entries for the PDC stack
-        run: echo "127.0.0.1 pdc-api pdc-auth pdc-s3" | sudo tee -a /etc/hosts
-      - name: Start the PDC stack
-        working-directory: service
-        run: docker compose -f compose-ci.yml up -d --wait
-        timeout-minutes: 5
       - name: Install just
         uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
@@ -139,6 +127,11 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           cache-suffix: integration
+      - name: Add hosts entries for the PDC stack
+        run: echo "127.0.0.1 pdc-api pdc-auth pdc-s3" | sudo tee -a /etc/hosts
+      - name: Start the PDC stack
+        run: just pdc up
+        timeout-minutes: 5
       - name: Run the integration tests
         run: just integration
         timeout-minutes: 5

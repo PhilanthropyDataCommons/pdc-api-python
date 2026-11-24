@@ -11,6 +11,7 @@ from pdc_api.client import (
     get_data_providers,
     get_funders,
     get_initiatives,
+    get_organizations,
 )
 from pdc_api.models import (
     BaseFieldDataType,
@@ -20,6 +21,7 @@ from pdc_api.models import (
     ChangemakerProposal,
     DataProvider,
     Funder,
+    Organization,
 )
 from pdc_api.testing import (
     base_field_payload as _basefield,
@@ -33,6 +35,7 @@ from pdc_api.testing import (
     data_provider_payload,
     funder_payload,
     initiative_payload,
+    organization_payload,
 )
 
 
@@ -77,6 +80,18 @@ class TestGetFunders:
 
         assert all(isinstance(f, Funder) for f in result)
         assert [f.short_code for f in result] == ["a", "b"]
+
+
+class TestGetOrganizations:
+    def test_yields_validated_models(self, session, add_json_response):
+        keycloak_ids = ["00000000-0000-0000-0000-0000000000a1", "00000000-0000-0000-0000-0000000000a2"]
+        payload = bundle([organization_payload(keycloak_organization_id=kc_id) for kc_id in keycloak_ids])
+        add_json_response(path="/organizations", payload=payload, query_params={"_page": 1, "_count": 50})
+
+        result = list(get_organizations(session))
+
+        assert all(isinstance(o, Organization) for o in result)
+        assert [str(o.keycloak_organization_id) for o in result] == keycloak_ids
 
 
 class TestGetDataProviders:

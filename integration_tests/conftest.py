@@ -144,3 +144,16 @@ def add_user_to_org(keycloak_admin, keycloak_client_id, test_user_password):
             keycloak_admin.ensure_user_in_organization(organization_id=org.id, user_id=user.id)
 
     return add
+
+
+@pytest.fixture(scope="session")
+def admin_api_session() -> APISession:
+    token_provider = KeycloakClientCredentialsProvider(
+        server_url=KEYCLOAK_SERVER_URL,
+        realm=KEYCLOAK_REALM,
+        client_id=KEYCLOAK_CLIENT_ID,
+        client_secret=KEYCLOAK_CLIENT_SECRET,
+        timeout=PDC_API_TIMEOUT,
+        scope="kc-admin-api",
+    )
+    return APISession(base_url=PDC_API_URL, token_provider=token_provider, timeout=PDC_API_TIMEOUT)

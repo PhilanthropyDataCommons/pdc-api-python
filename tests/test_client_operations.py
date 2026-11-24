@@ -22,11 +22,14 @@ from pdc_api.client import (
     get_organization_by_keycloak_id,
     get_proposal,
     link_changemaker_to_proposal,
+    sync_organizations_from_keycloak,
+    sync_users_from_keycloak,
 )
 from pdc_api.errors import (
     ApplicationFormNotFoundError,
     ChangemakerNotFoundError,
     FunderNotFoundError,
+    KeycloakSyncError,
     PDCNotFoundError,
     ProposalNotFoundError,
 )
@@ -37,6 +40,7 @@ from pdc_api.models import (
     NewProposalFieldValue,
     NewProposalVersion,
     Organization,
+    SyncTaskStatus,
 )
 from pdc_api.testing import (
     application_form_payload,
@@ -51,9 +55,12 @@ from pdc_api.testing import (
     proposal_payload,
     proposal_version_payload,
     source_payload,
+    user_payload,
 )
 
 BASE_URL = "https://pdc.test"
+ORG_ID = "00000000-0000-0000-0000-0000000000a1"
+USER_ID = "00000000-0000-0000-0000-0000000000b1"
 
 
 def _post(path, payload):
@@ -123,14 +130,36 @@ class TestGetChangemakerProposal:
 
 class TestGetOrganizationByKeycloakId:
     def test_parses_organization_with_funder_facet(self, session, add_organization_response):
-        add_organization_response(keycloak_id="kc-uuid", funder=funder_payload(short_code="acme"))
+        add_organization_response(keycloak_id=ORG_ID, funder=funder_payload(short_code="acme"))
 
-        result = get_organization_by_keycloak_id(session, keycloak_id="kc-uuid")
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
 
         assert isinstance(result, Organization)
         assert result.funder is not None
         assert result.funder.short_code == "acme"
         assert result.changemaker is None
+
+    def test_parses_members_and_their_disabled_state(self, session, add_organization_response):
+        add_organization_response(
+            keycloak_id=ORG_ID,
+            members=[user_payload(keycloak_user_id=USER_ID, disabled_at="2026-11-19T20:11:38Z")],
+            former_members=[],
+        )
+
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
+
+        assert result.members is not None
+        assert [str(member.keycloak_user_id) for member in result.members] == [USER_ID]
+        assert result.members[0].disabled_at == datetime(2026, 11, 19, 20, 11, 38, tzinfo=UTC)
+        assert result.former_members == []
+
+    def test_keeps_members_null_when_hidden_from_the_caller(self, session, add_organization_response):
+        add_organization_response(keycloak_id=ORG_ID)
+
+        result = get_organization_by_keycloak_id(session, keycloak_id=ORG_ID)
+
+        assert result.members is None
+        assert result.former_members is None
 
 
 class TestGetApplicationForm:
@@ -354,3 +383,68 @@ class TestGetBundlePage:
         )
 
         assert result.total == 0
+
+
+def _sync_task(*, id: int = 7, status: str, details: dict | None = None) -> dict:
+    return {
+        "id": id,
+        "status": status,
+        "details": details,
+        "createdAt": "2026-11-19T20:11:38Z",
+        "createdBy": USER_ID,
+        "statusUpdatedAt": "2026-11-19T20:11:38Z",
+    }
+
+
+EXPECTED_SYNC_OUTCOME = {
+    SyncTaskStatus.PENDING: "polls",
+    SyncTaskStatus.IN_PROGRESS: "polls",
+    SyncTaskStatus.COMPLETED: "returns",
+    SyncTaskStatus.FAILED: "raises",
+    SyncTaskStatus.CANCELED: "raises",
+}
+IN_FLIGHT_STATUSES = [status for status, outcome in EXPECTED_SYNC_OUTCOME.items() if outcome == "polls"]
+UNSUCCESSFUL_STATUSES = [status for status, outcome in EXPECTED_SYNC_OUTCOME.items() if outcome == "raises"]
+
+
+def test_every_sync_task_status_has_an_expected_outcome():
+    assert set(SyncTaskStatus) - set(EXPECTED_SYNC_OUTCOME) == set()
+
+
+@pytest.fixture(
+    params=[(sync_users_from_keycloak, "users/sync"), (sync_organizations_from_keycloak, "organizations/sync")],
+    ids=["users", "organizations"],
+)
+def sync(request):
+    return request.param
+
+
+class TestRunSyncTask:
+    @pytest.mark.parametrize("in_flight_status", IN_FLIGHT_STATUSES)
+    def test_polls_until_the_task_completes(self, session, add_json_response, sync, in_flight_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=in_flight_status))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=in_flight_status))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=SyncTaskStatus.COMPLETED))
+
+        task = sync_function(session, poll_interval_seconds=0)
+
+        assert task.status == SyncTaskStatus.COMPLETED
+        assert len(responses.calls) == 3
+
+    @pytest.mark.parametrize("unsuccessful_status", UNSUCCESSFUL_STATUSES)
+    def test_raises_when_the_task_ends_unsuccessfully(self, session, add_json_response, sync, unsuccessful_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=SyncTaskStatus.PENDING))
+        add_json_response(path=f"{endpoint}/7", payload=_sync_task(status=unsuccessful_status))
+
+        with pytest.raises(KeycloakSyncError, match=unsuccessful_status):
+            sync_function(session, poll_interval_seconds=0)
+
+    @pytest.mark.parametrize("in_flight_status", IN_FLIGHT_STATUSES)
+    def test_raises_when_the_task_outlasts_the_timeout(self, session, sync, in_flight_status):
+        sync_function, endpoint = sync
+        _post(endpoint, _sync_task(status=in_flight_status))
+
+        with pytest.raises(KeycloakSyncError, match=in_flight_status):
+            sync_function(session, poll_interval_seconds=0, timeout_seconds=0)
